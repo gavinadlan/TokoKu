@@ -23,5 +23,13 @@ app:
   admin:
     email: ${ADMIN_EMAIL:}
     password: ${ADMIN_PASSWORD:}
+  payment:
+    provider: ${APP_PAYMENT_PROVIDER:midtrans}   # midtrans | fake (fake dilarang di prod)
+    midtrans:
+      server-key: ${MIDTRANS_SERVER_KEY:}
+      client-key: ${MIDTRANS_CLIENT_KEY:}
+      snap-url: ${MIDTRANS_API_URL:https://app.sandbox.midtrans.com/snap/v1/transactions}
+  order:
+    expiry-minutes: ${APP_ORDER_EXPIRY_MINUTES:60}
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}

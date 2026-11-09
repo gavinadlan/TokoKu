@@ -102,4 +102,16 @@ public class OrderService {
         o.transitionTo(next);
         return OrderResponse.from(o);
     }
+
+    /**
+     * Membatalkan order yang belum dibayar dan mengembalikan stok. Dipanggil dari webhook, pembatalan, dan kedaluwarsa.
+     * Harus dipanggil di dalam transaksi pemanggil, dan sebaiknya sesudah semua perubahan entity lain
+     * (update stok memakai flush otomatis).
+     */
+    public void cancelAndRestock(Order order) {
+        order.transitionTo(OrderStatus.CANCELLED);
+        order.getItems().stream()
+                .sorted(Comparator.comparing(OrderItem::getProductId)) // urutan tetap = tanpa deadlock
+                .forEach(i -> products.incrementStock(i.getProductId(), i.getQuantity()));
+    }
 }

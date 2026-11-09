@@ -24,7 +24,7 @@ import com.tokoku.product.Product;
 import com.tokoku.product.ProductRepository;
 
 // Dasar test integrasi: satu context + satu container Postgres dipakai bersama semua subclass
-@SpringBootTest
+@SpringBootTest(properties = "app.payment.provider=fake")
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 public abstract class ApiTestBase {
