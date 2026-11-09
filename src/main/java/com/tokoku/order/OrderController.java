@@ -2,6 +2,7 @@ package com.tokoku.order;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -36,7 +37,7 @@ public class OrderController {
     @Operation(summary = "Riwayat order sendiri")
     @GetMapping
     public Page<OrderResponse> list(@AuthenticationPrincipal Jwt jwt,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) @ParameterObject Pageable pageable) {
         return service.listMine(Long.valueOf(jwt.getSubject()), pageable);
     }
 

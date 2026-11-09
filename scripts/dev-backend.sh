@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Menjalankan backend untuk pengembangan frontend: Postgres (Docker), profil dev (data seed kopi),
+# provider pembayaran fake (override, .env tidak diubah), CORS untuk frontend.
+#   scripts/dev-backend.sh            jalankan
+#   scripts/dev-backend.sh --reset    hapus data database dulu (volume Docker) lalu jalankan
+# Variabel opsional: FRONTEND_ORIGIN (default http://localhost:5173), APP_PAYMENT_PROVIDER (default fake)
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+[ -f .env ] || { echo "Buat .env dari .env.example dulu (butuh DB_PASSWORD dan JWT_SECRET)"; exit 1; }
+set -a; source .env; set +a
+
+if [ -z "${JAVA_HOME:-}" ] && [ -d /opt/homebrew/opt/openjdk@21 ]; then
+  export JAVA_HOME=/opt/homebrew/opt/openjdk@21 PATH=/opt/homebrew/opt/openjdk@21/bin:$PATH
+fi
+
+if [ "${1:-}" = "--reset" ]; then docker compose down -v >/dev/null 2>&1 || true; fi
+docker compose up -d --wait db >/dev/null
+
+# Admin lokal: dibuat sekali, disimpan di .dev-admin.env (di-gitignore). Dipakai juga oleh e2e.
+if [ ! -f .dev-admin.env ]; then
+  printf 'ADMIN_EMAIL=admin@tokoku.local\nADMIN_PASSWORD=%s\n' "$(openssl rand -hex 12)" > .dev-admin.env
+fi
+set -a; source .dev-admin.env; set +a
+
+export DATABASE_PASSWORD="$DB_PASSWORD"
+export DATABASE_URL="jdbc:postgresql://localhost:${DB_PORT:-5432}/tokoku"
+export SPRING_PROFILES_ACTIVE=dev
+export APP_PAYMENT_PROVIDER="${APP_PAYMENT_PROVIDER:-fake}"
+export APP_CORS_ALLOWED_ORIGINS="${FRONTEND_ORIGIN:-http://localhost:5173}"
+
+echo "Backend: http://localhost:8080  (provider pembayaran: $APP_PAYMENT_PROVIDER, admin: $ADMIN_EMAIL, password di .dev-admin.env)"
+exec ./mvnw -B -q spring-boot:run

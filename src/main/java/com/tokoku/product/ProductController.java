@@ -3,6 +3,7 @@ package com.tokoku.product;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -28,7 +29,7 @@ public class ProductController {
     @GetMapping
     public Page<ProductResponse> list(@RequestParam(required = false) String q,
             @RequestParam(required = false) Long category,
-            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
+            @PageableDefault(size = 20, sort = "id") @ParameterObject Pageable pageable) {
         return service.search(q, category, pageable);
     }
 

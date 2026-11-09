@@ -10,6 +10,11 @@ import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.tags.Tag;
 
+import java.util.Map;
+import java.util.Set;
+
+import org.springdoc.core.customizers.OpenApiCustomizer;
+
 @Configuration
 public class OpenApiConfig {
 
@@ -32,5 +37,31 @@ public class OpenApiConfig {
                 .addTagsItem(new Tag().name("Pembayaran").description("Pembayaran Midtrans dan webhook"))
                 .addTagsItem(new Tag().name("Admin").description("Khusus role ADMIN"))
                 .addTagsItem(new Tag().name("Dev").description("Hanya dev/test dengan provider fake"));
+    }
+
+    // Record Java tidak menandai komponen sebagai required di OpenAPI, sehingga klien TypeScript yang dibangkitkan
+    // menganggap semua field respons opsional. Di sini semua field respons ditandai required, kecuali yang memang boleh null.
+    private static final Map<String, Set<String>> NULLABLE = Map.of(
+            "ProductResponse", Set.of("description", "imageUrl"),
+            "CartItemResponse", Set.of("imageUrl"),
+            "PayResponse", Set.of("clientKey"));
+
+    @Bean
+    OpenApiCustomizer responseFieldsRequired() {
+        return openApi -> openApi.getComponents().getSchemas().forEach((name, schema) -> {
+            boolean response = name.endsWith("Response") || name.equals("PageMetadata") || name.equals("WebhookResult")
+                    || name.equals("SimulationResult") || name.startsWith("PagedModel");
+            if (!response || schema.getProperties() == null) {
+                return;
+            }
+            Set<String> nullable = NULLABLE.getOrDefault(name, Set.of());
+            schema.setRequired(schema.getProperties().keySet().stream().filter(k -> !nullable.contains(k)).sorted().toList());
+            nullable.forEach(k -> {
+                io.swagger.v3.oas.models.media.Schema<?> prop = (io.swagger.v3.oas.models.media.Schema<?>) schema.getProperties().get(k);
+                if (prop != null) {
+                    prop.addType("null");
+                }
+            });
+        });
     }
 }

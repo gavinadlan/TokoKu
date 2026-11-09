@@ -2,6 +2,7 @@ package com.tokoku.product;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -24,7 +25,7 @@ public class AdminProductController {
     public Page<ProductResponse> list(@RequestParam(required = false) String q,
             @RequestParam(required = false) Long category,
             @RequestParam(required = false) Boolean active,
-            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
+            @PageableDefault(size = 20, sort = "id") @ParameterObject Pageable pageable) {
         return service.searchAll(q, category, active, pageable);
     }
 }
