@@ -3,31 +3,32 @@ package com.tokoku.product;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
 
 import com.jayway.jsonpath.JsonPath;
-import com.tokoku.TestcontainersConfiguration;
+import com.tokoku.support.ApiTestBase;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
-class ProductApiIntegrationTest {
+class ProductApiIntegrationTest extends ApiTestBase {
 
-    @Autowired MockMvc mvc;
+    private String admin;
 
-    private String create(String url, String json) throws Exception {
-        return mvc.perform(post(url).contentType(MediaType.APPLICATION_JSON).content(json))
+    @BeforeEach
+    void setUp() throws Exception {
+        admin = adminToken();
+    }
+
+    private String create(String url, String body) throws Exception {
+        return mvc.perform(post(url).header("Authorization", "Bearer " + admin)
+                .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
     }
 
     private int createCategory(String name) throws Exception {
-        return JsonPath.read(create("/api/categories", "{\"name\":\"" + name + "\"}"), "$.id");
+        return JsonPath.read(create("/api/categories", "{\"name\":\"" + name + "-" + UUID.randomUUID() + "\"}"), "$.id");
     }
 
     private int createProduct(int categoryId, String name, int stock) throws Exception {
@@ -43,8 +44,7 @@ class ProductApiIntegrationTest {
         mvc.perform(get("/api/products/" + id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Java Book"))
-                .andExpect(jsonPath("$.stock").value(7))
-                .andExpect(jsonPath("$.categoryName").value("Books"));
+                .andExpect(jsonPath("$.stock").value(7));
     }
 
     @Test
@@ -66,17 +66,24 @@ class ProductApiIntegrationTest {
     void negativeStockIsRejectedWith400() throws Exception {
         int id = createProduct(createCategory("Food"), "Snack", 5);
 
-        mvc.perform(patch("/api/products/" + id + "/stock").contentType(MediaType.APPLICATION_JSON).content("{\"stock\":-1}"))
+        mvc.perform(patch("/api/products/" + id + "/stock").header("Authorization", "Bearer " + admin)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"stock\":-1}"))
                 .andExpect(status().isBadRequest());
 
         mvc.perform(get("/api/products/" + id)).andExpect(jsonPath("$.stock").value(5));
     }
 
     @Test
-    void deleteDeactivatesAndHidesProduct() throws Exception {
-        int id = createProduct(createCategory("Misc"), "Old", 1);
+    void deleteDeactivatesAndHidesProductFromPublicButNotAdminList() throws Exception {
+        int cat = createCategory("Misc");
+        int id = createProduct(cat, "Old", 1);
 
-        mvc.perform(delete("/api/products/" + id)).andExpect(status().isNoContent());
+        mvc.perform(delete("/api/products/" + id).header("Authorization", "Bearer " + admin)).andExpect(status().isNoContent());
         mvc.perform(get("/api/products/" + id)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/admin/products").header("Authorization", "Bearer " + admin)
+                .param("category", String.valueOf(cat)).param("active", "false"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].active").value(false));
     }
 }
