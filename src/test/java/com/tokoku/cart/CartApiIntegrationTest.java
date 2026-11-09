@@ -26,6 +26,7 @@ class CartApiIntegrationTest extends ApiTestBase {
         send(get("/api/cart"), token, null).andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(1))
                 .andExpect(jsonPath("$.items[0].quantity").value(5))
+                .andExpect(jsonPath("$.items[0].categoryId").value(p.getCategory().getId()))
                 .andExpect(jsonPath("$.totalQuantity").value(5))
                 .andExpect(jsonPath("$.total").value(125000.0));
     }

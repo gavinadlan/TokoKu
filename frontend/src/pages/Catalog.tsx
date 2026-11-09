@@ -96,7 +96,7 @@ export function CatalogPage() {
           <ul className="grid" style={products.isPlaceholderData ? { opacity: 0.6 } : undefined}>
             {products.data.content.map((p) => (
               <li key={p.id}>
-                <ProductCard product={p} />
+                <ProductCard product={p} showCategory={params.category === null} />
               </li>
             ))}
           </ul>

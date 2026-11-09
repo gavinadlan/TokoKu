@@ -50,3 +50,15 @@
 - **`image_url`**: hanya URL `http(s)`, maks 500 karakter; skema lain (mis. `javascript:`) ditolak 400. Upload file belum ada.
 - **Rate limit login**: Bucket4j in-memory, 5/menit per email dan 30/menit per IP, dibatasi 10.000 kunci (LRU). Tidak dibagi antar instance dan hilang saat restart (batas yang diterima). IP asli di prod lewat `server.forward-headers-strategy=framework`. Test memakai batas longgar kecuali test 429 khusus.
 - **Butir 7 (cache Redis) DILEWATI.** Alasan: perlu serializer cache untuk `Page` di Spring Data Redis 4 + Jackson 3 (API belum pasti), invalidasi tiap stok berubah, Testcontainers Redis, dan fail-open; manfaatnya kecil untuk beban demo. `redis` tidak dikembalikan ke `docker-compose.yml`.
+
+## Frontend
+- **Backend disesuaikan agar klien bertipe akurat:** field respons ditandai `required` lewat `OpenApiCustomizer` (record Java tidak menandainya), parameter `Pageable` memakai `@ParameterObject` (page, size, sort datar), dan `CartItemResponse` mendapat `categoryId` (nada visual thumbnail konsisten dengan katalog). Tidak ada perubahan perilaku API.
+- **Provider pembayaran fake di dev:** `scripts/dev-backend.sh` memaksa `APP_PAYMENT_PROVIDER=fake` lewat env proses; `.env` tidak diubah. Halaman `/dev/bayar/:ref` hanya ada di dev server.
+- **Batas login dilonggarkan hanya di `scripts/dev-backend.sh`** (1000/menit) karena e2e masuk puluhan kali dari satu IP; default backend tetap 5/menit per email dan 30/menit per IP. Ini sempat membuat e2e tidak stabil sebelum dilonggarkan.
+- **Token:** access di memori, refresh di `localStorage` (alasan dan mitigasi XSS di `frontend/README.md`). Alternatif `HttpOnly` cookie butuh perubahan backend; tidak dikerjakan.
+- **Keranjang halaman, bukan drawer; redirect penuh ke Midtrans, bukan Snap.js** (disetujui di brief).
+- **Pesan error backend diterjemahkan di klien** (pola teks Inggris yang dikenal), karena backend mengembalikan detail berbahasa Inggris. Pesan yang tidak dikenal memakai pesan standar per status.
+- **Nada placeholder per kategori:** keluarga terang (nada 1-3) untuk kategori ganjil, gelap (4-6) untuk genap; produk bergeser antar tiga tingkat dalam keluarga itu. Versi pertama (cincin 6 nada) membuat kisi loncat gelap-terang acak.
+- **TypeScript 5.9**, bukan rilis terbaru: `openapi-typescript@7` mensyaratkan `typescript@^5`.
+- **E2E tidak dijalankan di CI** (butuh backend + Docker + database); CI frontend menjalankan lint, typecheck, test, build.
+- Nama produk, harga, dan deskripsi pada mock desain berasal dari data seed; "No. 001" adalah id database.

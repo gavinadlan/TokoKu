@@ -80,7 +80,7 @@ public class CartService {
         List<CartItemResponse> list = items.findAllWithProduct(cart.getId()).stream().map(i -> {
             Product p = i.getProduct();
             BigDecimal subtotal = p.getPrice().multiply(BigDecimal.valueOf(i.getQuantity()));
-            return new CartItemResponse(i.getId(), p.getId(), p.getName(), p.getImageUrl(), p.getPrice(),
+            return new CartItemResponse(i.getId(), p.getId(), p.getCategory().getId(), p.getName(), p.getImageUrl(), p.getPrice(),
                     i.getQuantity(), subtotal, p.getStock());
         }).toList();
         BigDecimal total = list.stream().map(CartItemResponse::subtotal).reduce(BigDecimal.ZERO, BigDecimal::add);

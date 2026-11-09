@@ -47,6 +47,7 @@ test.describe('aksesibilitas (axe: tanpa pelanggaran serious/critical)', () => {
     await page.getByRole('button', { name: 'Buat pesanan dan bayar' }).click(); // memunculkan error validasi
     await expectNoSeriousViolations(page, 'checkout dengan error');
     await page.goto('/order');
+    await expect(page.getByRole('heading', { name: 'Belum ada pesanan' })).toBeVisible();
     await expectNoSeriousViolations(page, 'riwayat order');
   });
 

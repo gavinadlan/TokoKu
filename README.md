@@ -7,6 +7,15 @@ Catatan keputusan: [docs/DECISIONS.md](docs/DECISIONS.md). Log kemajuan dan bukt
 Backend lengkap (auth + refresh token, katalog, keranjang, order, pembayaran Midtrans). Frontend belum ada: gunakan Swagger UI.
 Belum ada: cache Redis (opsional di PRD, dilewati), upload gambar (produk hanya menyimpan `imageUrl`), email, login Google.
 
+## Frontend
+
+Aplikasi web ada di [`frontend/`](frontend/README.md) (React + TypeScript). Arah desain: [docs/DESIGN.md](docs/DESIGN.md).
+
+```bash
+scripts/dev-backend.sh      # terminal 1: backend dev + data seed + provider pembayaran fake + CORS untuk :5173
+cd frontend && npm install && npm run dev      # terminal 2: http://localhost:5173
+```
+
 ## Menjalankan lokal
 
 Butuh JDK 21 dan Docker.

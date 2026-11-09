@@ -27,6 +27,8 @@ export DATABASE_PASSWORD="$DB_PASSWORD"
 export DATABASE_URL="jdbc:postgresql://localhost:${DB_PORT:-5432}/tokoku"
 export SPRING_PROFILES_ACTIVE=dev
 export APP_PAYMENT_PROVIDER="${APP_PAYMENT_PROVIDER:-fake}"
+# Dev lokal: batas login dilonggarkan (e2e masuk berkali-kali dari satu IP). Default backend tetap 5/menit per email dan 30/menit per IP.
+export APP_RATELIMIT_LOGIN_PER_EMAIL="${APP_RATELIMIT_LOGIN_PER_EMAIL:-1000}" APP_RATELIMIT_LOGIN_PER_IP="${APP_RATELIMIT_LOGIN_PER_IP:-1000}"
 export APP_CORS_ALLOWED_ORIGINS="${FRONTEND_ORIGIN:-http://localhost:5173}"
 
 echo "Backend: http://localhost:8080  (provider pembayaran: $APP_PAYMENT_PROVIDER, admin: $ADMIN_EMAIL, password di .dev-admin.env)"

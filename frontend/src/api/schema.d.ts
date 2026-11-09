@@ -464,6 +464,8 @@ export interface components {
             id: number;
             /** Format: int64 */
             productId: number;
+            /** Format: int64 */
+            categoryId: number;
             productName: string;
             imageUrl?: string | null;
             unitPrice: number;

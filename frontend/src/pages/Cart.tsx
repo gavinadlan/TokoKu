@@ -51,13 +51,16 @@ export function CartPage() {
                 return (
                   <li className="line" key={item.id}>
                     <Link to={`/produk/${item.productId}`} aria-hidden="true" tabIndex={-1}>
-                      <ProductVisual id={item.productId} categoryId={item.productId} name={item.productName} imageUrl={item.imageUrl} size="thumb" />
+                      <ProductVisual id={item.productId} categoryId={item.categoryId} name={item.productName} imageUrl={item.imageUrl} size="thumb" />
                     </Link>
                     <div className="body">
-                      <Link className="name" to={`/produk/${item.productId}`}>
-                        {item.productName}
-                      </Link>
-                      <span className="muted tnum">{formatRupiah(item.unitPrice)}</span>
+                      <div className="line-top">
+                        <Link className="name" to={`/produk/${item.productId}`}>
+                          {item.productName}
+                        </Link>
+                        <span className="sub">{formatRupiah(item.subtotal)}</span>
+                      </div>
+                      <span className="muted tnum">{formatRupiah(item.unitPrice)} per barang</span>
                       {over && (
                         <span className="field-error" role="alert">
                           Stok tersisa {item.availableStock}. Kurangi jumlahnya untuk melanjutkan.
@@ -78,7 +81,6 @@ export function CartPage() {
                             <span aria-hidden="true">+</span>
                           </button>
                         </div>
-                        <span className="sub">{formatRupiah(item.subtotal)}</span>
                         <button type="button" className="link-btn" onClick={() => remove.mutate({ itemId: item.id })} aria-label={`Hapus ${item.productName} dari keranjang`}>
                           Hapus
                         </button>

@@ -9,12 +9,12 @@ export function StockNote({ stock }: { stock: number }) {
   return null;
 }
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({ product, showCategory = true }: { product: Product; showCategory?: boolean }) {
   return (
     <Link className="card" to={`/produk/${product.id}`} data-out={product.stock <= 0}>
       <ProductVisual id={product.id} categoryId={product.categoryId} name={product.name} imageUrl={product.imageUrl} />
       <div className="info">
-        <span className="cat">{product.categoryName}</span>
+        {showCategory && <span className="cat">{product.categoryName}</span>}
         <span className="name">{product.name}</span>
         <div className="meta-row">
           <span className="price">{formatRupiah(product.price)}</span>

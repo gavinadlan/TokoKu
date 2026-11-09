@@ -30,3 +30,9 @@ CRUD produk dan kategori, Flyway V1, Docker, CI. 9 test.
 1. Pembatalan order oleh pemilik. 2. Kedaluwarsa: `@Scheduled` + pengecekan malas. 3. Refresh token (hash, rotasi, deteksi pemakaian ulang), logout, change-password. 4. Kategori PUT/DELETE (409 bila ada produk). 5. `image_url`. 6. Rate limit login Bucket4j (429).
 7. **Cache Redis: dilewati** (lihat DECISIONS).
 - Bukti: `./mvnw -B verify` hijau, 80 test, gate JaCoCo lolos. Test konkuren: cancel vs expiry mengembalikan stok tepat sekali.
+
+## Frontend (selesai)
+- Aplikasi di `frontend/`: katalog (state di URL), detail produk, keranjang (optimistic), auth dengan refresh otomatis, checkout, pembayaran Midtrans (redirect) dengan halaman status, riwayat/detail order, panel admin (produk, kategori, order), 404 dan error boundary.
+- Bukti: `npm run lint`, `typecheck`, `test` (35 test), `build` hijau. Playwright e2e 12/12 (4 kali berturut-turut) terhadap backend lokal dengan provider fake, termasuk axe tanpa pelanggaran serious/critical (katalog, detail, masuk, daftar, 404 di 375 dan 1280; keranjang, checkout, order, tiga halaman admin). `./mvnw -B verify` tetap hijau (80 test).
+- Screenshot: `docs/design/screens/` (375/768/1280); `docs/design/screens/before/` adalah sebelum ronde kritik diri.
+- Belum terbukti: pembayaran Midtrans sungguhan dari UI (butuh tunnel publik), CI GitHub (belum pernah berjalan).

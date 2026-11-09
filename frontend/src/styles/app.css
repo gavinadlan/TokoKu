@@ -165,7 +165,9 @@ textarea.input { min-height: 112px; resize: vertical; }
 .line { display: grid; grid-template-columns: 64px 1fr; gap: var(--s-4); padding-block: var(--s-4); border-bottom: 1px solid var(--line); }
 .line .body { display: grid; gap: var(--s-2); min-width: 0; }
 .line .name { font-family: var(--font-display); font-size: var(--text-lg); font-weight: 440; font-variation-settings: "opsz" 24; }
-.line .controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4); justify-content: space-between; }
+.line .line-top { display: flex; justify-content: space-between; gap: var(--s-4); align-items: baseline; }
+.line .controls { display: flex; align-items: center; gap: var(--s-4); justify-content: space-between; }
+.line > a { text-decoration: none; }
 .line .sub { font-weight: 560; font-variant-numeric: tabular-nums; }
 
 .layout-2 { display: grid; gap: var(--s-7); }
@@ -257,3 +259,11 @@ table.data td.num, table.data th.num { text-align: right; font-variant-numeric: 
 .account .menu a, .account .menu button { justify-content: flex-start; width: 100%; text-align: left; }
 .account .menu .tiny { font-size: var(--text-xs); padding: var(--s-2) var(--s-3); overflow-wrap: anywhere; }
 .tiny-note { font-size: var(--text-sm); }
+
+/* select bawaan OS diganti tampilan sendiri (panah tipis), tinggi sama dengan input */
+select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%231B1613' stroke-width='1.5'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px !important; }
+.input, select.input { height: 48px; }
+textarea.input { height: auto; }
+.inline-form { align-items: flex-end; }
+.line .name { text-decoration: none; }
+.line .name:hover { text-decoration: underline; text-decoration-thickness: 1px; }

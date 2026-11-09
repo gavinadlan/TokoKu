@@ -12,7 +12,7 @@ import { NotFoundView } from './NotFound';
 
 function ProductSkeleton() {
   return (
-    <div className="wrap detail" aria-busy="true" aria-label="Memuat produk" style={{ paddingTop: 'var(--s-6)' }}>
+    <div className="wrap detail" role="status" aria-busy="true" aria-label="Memuat produk" style={{ paddingTop: 'var(--s-6)' }}>
       <div className="skeleton vis-s" />
       <div>
         <div className="skeleton line-s short" />
@@ -122,8 +122,8 @@ export function ProductPage() {
       </div>
       <div className="buybar">
         <div className="p">
-          <small>Harga</small>
-          <b>{formatRupiah(p.price)}</b>
+          <small>{quantity > 1 ? `Total (${quantity} barang)` : 'Harga'}</small>
+          <b>{formatRupiah(p.price * quantity)}</b>
         </div>
         <button type="button" className="btn" disabled={buyDisabled || add.isPending} onClick={onAdd}>
           {buyLabel}

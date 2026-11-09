@@ -1339,6 +1339,10 @@
                         "type": "integer",
                         "format": "int64"
                     },
+                    "categoryId": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
                     "productName": {
                         "type": "string"
                     },
@@ -1365,6 +1369,7 @@
                 },
                 "required": [
                     "availableStock",
+                    "categoryId",
                     "id",
                     "productId",
                     "productName",

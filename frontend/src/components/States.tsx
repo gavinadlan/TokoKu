@@ -44,7 +44,7 @@ export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
 
 export function ListSkeleton({ rows = 4 }: { rows?: number }) {
   return (
-    <div aria-busy="true" aria-label="Memuat">
+    <div role="status" aria-busy="true" aria-label="Memuat">
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="skeleton line-s" style={{ height: 56, marginTop: 12 }} />
       ))}
