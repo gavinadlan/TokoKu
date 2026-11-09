@@ -31,6 +31,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     Optional<Product> findByIdAndActiveTrue(Long id);
 
+    boolean existsByCategoryId(Long categoryId);
+
     // Kurangi stok atomik di DB: baris hanya berubah jika stok cukup, sehingga stok tidak pernah negatif
     // walau banyak checkout bersamaan. Mengembalikan jumlah baris yang berubah (0 = gagal).
     @Modifying(clearAutomatically = true, flushAutomatically = true)

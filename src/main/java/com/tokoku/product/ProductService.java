@@ -39,13 +39,14 @@ public class ProductService {
     @Transactional
     public ProductResponse create(ProductRequest r) {
         Product p = new Product(category(r.categoryId()), r.name(), r.description(), r.price(), r.stock());
+        p.update(p.getCategory(), r.name(), r.description(), r.price(), r.imageUrl());
         return ProductResponse.from(products.save(p));
     }
 
     @Transactional
     public ProductResponse update(Long id, ProductRequest r) {
         Product p = products.findById(id).orElseThrow(() -> notFound(id));
-        p.update(category(r.categoryId()), r.name(), r.description(), r.price());
+        p.update(category(r.categoryId()), r.name(), r.description(), r.price(), r.imageUrl());
         p.setStock(r.stock());
         return ProductResponse.from(p); // entity managed: perubahan otomatis di-flush saat commit
     }

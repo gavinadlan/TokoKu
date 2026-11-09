@@ -10,4 +10,6 @@ public record ProductRequest(
         @NotBlank @Size(max = 200) String name,
         String description,
         @NotNull @DecimalMin("0.00") @Digits(integer = 10, fraction = 2) BigDecimal price,
-        @Min(0) int stock) {}
+        @Min(0) int stock,
+        // URL gambar diisi manual (penyimpanan file belum ada); hanya http/https
+        @Size(max = 500) @Pattern(regexp = "^(https?://\\S+)?$", message = "must be an http(s) URL") String imageUrl) {}

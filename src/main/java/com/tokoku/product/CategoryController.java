@@ -35,4 +35,17 @@ public class CategoryController {
     public CategoryResponse create(@Valid @RequestBody CategoryRequest request) {
         return service.create(request);
     }
+
+    @Operation(summary = "Ubah nama kategori (ADMIN)")
+    @PutMapping("/{id}")
+    public CategoryResponse update(@PathVariable Long id, @Valid @RequestBody CategoryRequest request) {
+        return service.update(id, request);
+    }
+
+    @Operation(summary = "Hapus kategori; 409 jika masih punya produk (ADMIN)")
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        service.delete(id);
+    }
 }
