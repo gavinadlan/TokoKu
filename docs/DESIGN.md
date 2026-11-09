@@ -111,3 +111,64 @@ Aturan: judul sentence case (tanpa huruf kapital semua); tanpa tracking lebar; a
 2. **Foto produk:** sekarang tidak ada; placeholder label kemasan dipakai, dan `imageUrl` dari admin menggantikannya otomatis.
 3. **Mode gelap** tidak dikerjakan di tahap ini.
 4. **Nama lain "No."**: nomor produk memakai id database; jika Anda ingin kode SKU sendiri, backend perlu kolom baru (di luar lingkup).
+
+---
+
+# Putaran 2 (addendum, draf untuk disetujui)
+
+Mock statis di `docs/design/round2/*.html`, screenshot 375 dan 1280 di `docs/design/round2/*.png` (invoice memakai lebar A4 794px; di 375 diperkecil proporsional). Data produk dan harga dari data seed; nama pembeli, nomor order, dan identitas toko adalah **data contoh** (diberi catatan di tiap mock). Foto produk belum ada, jadi mock memakai placeholder label kemasan.
+
+## R2-1. Shell admin terpisah dari toko
+
+Tujuan: terasa seperti alat kerja yang tenang dan padat, tetapi jelas "dapur", bukan etalase.
+- **Pembeda dari toko (keputusan konkret):** rel samping gelap (`#1B1613`) dengan teks paper, bukan header terang; isi di latar `--surface` (lebih terang dari paper toko); judul halaman serif ringan 28px (bukan 60px); isi 14px; tabel padat (baris 48px); tanpa kartu produk, tanpa placeholder besar. Wordmark "TokoKu *Admin*" dengan kata Admin miring redup.
+- **Bahasa yang sama:** token warna, Fraunces untuk judul, Hanken Grotesk untuk isi, aksen hijau yang sama untuk tombol utama, radius 4/6/8, hairline.
+- **Login admin** (`/admin/masuk`): dua panel. Kiri gelap (wordmark, satu kalimat "Khusus pengelola toko", bingkai label kosong sebagai motif), kanan form sempit. Salinan tegas: akun pembeli tidak bisa masuk di sini. Halaman login toko tidak menyebut admin sama sekali.
+- **Navigasi:** desktop rel kiri (Produk, Order, Pengaturan toko; email admin dan Keluar di bawah); ponsel jadi baris tab horizontal di bawah wordmark. Tidak ada tautan ke toko di header toko menuju admin, dan sebaliknya hanya lewat alamat.
+- **Tabel:** header menempel, kolom bisa diurutkan (`aria-sort`), kolom nomor menempel di ponsel, aksi baris dalam menu "Aksi" (bukan deretan tautan), status sebagai titik + teks, chip kecil "Kirim"/"Ambil" di order, panel tindakan di bawah tabel untuk mengisi resi dan memverifikasi kode ambil.
+
+## R2-2. Pilihan pengambilan di checkout
+
+Kontrol segmen dua kartu bergaris (radio sungguhan, bisa dipilih keyboard) di atas formulir: **Kirim ke alamat** (biaya kirim dan ambang gratis ongkir dari pengaturan toko) dan **Ambil di toko** (Gratis). Terpilih ditandai garis 2px ink + radio terisi, tidak hanya warna. Saat "Ambil di toko": formulir hanya nama pengambil dan telepon, plus kotak info toko bergaya label (alamat, jam buka, telepon, petunjuk). Ringkasan struk memisahkan **Subtotal**, **Biaya kirim** (atau "Ambil di toko: Gratis"), lalu **Total**; satu kalimat bantuan ("Tambah Rp 123.000 lagi untuk gratis ongkir") hanya bila ambang dikonfigurasi. Angka yang dikirim ke Midtrans selalu dari server.
+
+## R2-3. Linimasa status order (dua jalur)
+
+Linimasa vertikal dengan rel tipis: langkah selesai berdot ink, langkah sekarang berdot hijau dengan lingkar lembut, langkah berikutnya redup. Waktu tabular di kanan. **Kirim:** Pesanan dibuat, Dibayar, Diproses, Dikirim (blok label: kurir, nomor resi, tombol "Salin nomor resi"), Selesai. **Ambil:** Pesanan dibuat, Dibayar, Diproses, **Siap diambil** (blok label berisi **kode ambil** besar bergaya serif berjarak, plus lokasi dan jam buka), Selesai. Order dibatalkan tidak punya linimasa lanjutan, hanya pesan blok merah dengan alasan. Kode ambil hanya muncul untuk pemilik setelah order dibayar.
+
+## R2-4. Invoice A4
+
+Kertas paper dengan bingkai hairline 18px dari tepi (gema label kemasan, satu-satunya motif). Kiri atas identitas toko (wordmark serif, alamat, telepon, email); kanan atas "Invoice" serif ringan 44px, nomor `INV-YYYYMM-NNNNN` tabular, dan tanda **Lunas**: kotak berbingkai ganda hairline hijau dengan "Lunas" miring serif dan "dibayar 10 November 2026" kecil, tanpa rotasi, tanpa merah, tanpa cap. Garis ink tegas memisahkan kepala. Baris meta empat kolom (nomor order, tanggal terbit, tanggal bayar, metode pembayaran), dua blok pihak ("Ditagihkan kepada" dan "Dikirim ke" dengan kurir dan resi, atau "Pengambilan di toko" dengan lokasi, jam buka, dan kode ambil), tabel item (No., Deskripsi + kategori kecil, Jml, Harga satuan, Jumlah), ringkasan Subtotal / Biaya kirim (atau Ambil di toko: Gratis) / **Total** besar, baris status dan metode pembayaran, lalu catatan kaki yang diatur lewat konfigurasi. **Pajak dan NPWP/NIB hanya tampil bila dikonfigurasi**; tidak ada aturan pajak karangan. Dua varian: `invoice-delivery` dan `invoice-pickup`.
+- **Catatan teknis yang memengaruhi desain:** PDF dirender backend (openhtmltopdf) yang tidak membaca font variabel/WOFF2. Font toko (Fraunces, Hanken Grotesk, lisensi OFL) akan dibuat sebagai **instans statis TTF** lewat fontTools dan disertakan di jar; fitur OpenType lanjutan tidak tersedia, tetapi angka Hanken sudah selebar tabular. Lebih dari satu halaman menambah halaman A4 dengan kepala tabel berulang.
+
+## R2-5. Pengelola foto dan galeri
+
+- **Admin:** panel "Foto produk (3 dari 6)" dengan petunjuk format dan batas (jpg, png, webp, 5 MB). Grid kotak 4:5; tiap kotak: tag "Utama" pada foto utama, tombol teks **Kiri / Kanan** (urutan lewat tombol agar aksesibel keyboard, tanpa seret-lepas wajib), **Jadikan utama**, **Hapus** (konfirmasi dialog). State: mengunggah (bar progres 3px + persen, `role=progressbar`, bisa dibatalkan), gagal (kotak merah dengan alasan dan "Pilih file lain"), kosong ("Tambah foto"), batas 6 tercapai (tombol tambah hilang dengan keterangan).
+- **Galeri toko:** panggung besar (1:1 ponsel, 4:5 desktop) + deret thumbnail (vertikal di kiri pada desktop, horizontal di ponsel), thumbnail aktif diberi bingkai ink, tombol sebelumnya/berikutnya 44px dengan penghitung "2 / 4" (`aria-live`), panah kiri/kanan di keyboard. Gambar memakai `srcset` ukuran thumbnail, kartu, dan detail. Tanpa foto: placeholder label kemasan seperti sekarang.
+
+## R2-6. Lembar komponen (`components.html`)
+
+Setiap komponen ditampilkan normal, hover, fokus, nonaktif, dan loading bila relevan.
+- **Select/dropdown kustom:** Radix Select (headless; panah, Home/End, ketik huruf awal, Escape). Di perangkat sentuh (`pointer: coarse`) dipakai `<select>` native bergaya yang sama, karena pemilih bawaan ponsel lebih nyaman dan sudah aksesibel.
+- **Menu akun:** dropdown Radix (Enter membuka, panah memilih, Escape menutup dan mengembalikan fokus).
+- **Toast:** tetap komponen sendiri dengan `aria-live`, tiga varian (berhasil dengan aksi, error, peringatan), hilang 5 detik dan dijeda saat disorot/difokus.
+- **Dialog konfirmasi:** tetap `<dialog>` bawaan (fokus terkurung, Escape menutup, fokus kembali ke pemicu); tombol berbahaya berkata kerja spesifik ("Hapus foto"); state loading mematikan kedua tombol.
+- **Input harga:** awalan "Rp", pemisah ribuan saat mengetik, rata kanan, angka tabular, hanya digit; nilai tersimpan bulat.
+- **Stepper:** 44px, batas stok dijelaskan dengan teks.
+- **Tombol:** normal, hover, fokus, nonaktif, loading, sekunder, bahaya.
+- **Tabel admin:** header menempel, urut kolom, menu "Aksi".
+- **Loading/fokus halaman:** skeleton, progres tipis, fokus dipindah ke judul setelah navigasi, judul dokumen per halaman.
+
+## Alasan keputusan Putaran 2 (R-31, satu baris)
+- Rel gelap di admin: sinyal visual instan "ini ruang kerja"; sisanya sama agar merek konsisten.
+- Radio kartu di checkout: dua pilihan saling meniadakan, terbaca jelas di ponsel, aksesibel bawaan.
+- Kode ambil serif besar berbingkai: satu-satunya hal yang pembeli tunjukkan di kasir, jadi ia jadi titik fokus halaman.
+- Invoice bertipografi sama dengan toko tanpa dekorasi: dokumen resmi harus tenang; bingkai tipis dan "Lunas" berbingkai ganda cukup sebagai identitas.
+- Urutan foto dengan tombol Kiri/Kanan: aksesibel keyboard dan sederhana; seret-lepas bisa menyusul.
+- Instans TTF statis untuk PDF: satu-satunya cara font merek ikut masuk PDF dengan pustaka ringan.
+
+## Keputusan yang saya butuhkan dari Anda
+1. **Identitas toko di dev** memakai data contoh (`Jl. Contoh No. 1, Kota Anda`, `0800-0000-0000`, `halo@tokoku.example`). Anda mengisi yang asli di Pengaturan toko nanti. Setuju?
+2. **Biaya kirim dan ambang** pada contoh: Rp 15.000 flat, gratis di atas Rp 500.000 (nilai awal dev yang bisa diubah di pengaturan).
+3. **Kode ambil:** 6 karakter dari huruf dan angka tanpa karakter membingungkan (tanpa 0/O, 1/I/L). Setuju?
+4. **Urutan foto** lewat tombol Kiri/Kanan (bukan seret-lepas). Setuju?
+5. **Select kustom** di desktop dan native di sentuh, seperti dijelaskan di R2-6. Setuju?

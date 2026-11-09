@@ -36,3 +36,6 @@ CRUD produk dan kategori, Flyway V1, Docker, CI. 9 test.
 - Bukti: `npm run lint`, `typecheck`, `test` (35 test), `build` hijau. Playwright e2e 12/12 (4 kali berturut-turut) terhadap backend lokal dengan provider fake, termasuk axe tanpa pelanggaran serious/critical (katalog, detail, masuk, daftar, 404 di 375 dan 1280; keranjang, checkout, order, tiga halaman admin). `./mvnw -B verify` tetap hijau (80 test).
 - Screenshot: `docs/design/screens/` (375/768/1280); `docs/design/screens/before/` adalah sebelum ronde kritik diri.
 - Belum terbukti: pembayaran Midtrans sungguhan dari UI (butuh tunnel publik), CI GitHub (belum pernah berjalan).
+
+## Putaran 2 (branch `upgrade`)
+- Tahap A selesai: addendum desain "Putaran 2" di `docs/DESIGN.md`, 11 mock HTML dan 22 screenshot di `docs/design/round2/`. Menunggu persetujuan sebelum Tahap B.
