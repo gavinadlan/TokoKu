@@ -20,6 +20,7 @@ app:
   jwt:
     secret: ${JWT_SECRET:}          # kosong di dev = kunci acak sementara
     expiration-minutes: 30
+    refresh-days: 14
   admin:
     email: ${ADMIN_EMAIL:}
     password: ${ADMIN_PASSWORD:}

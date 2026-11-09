@@ -14,11 +14,13 @@ public class AuthService {
     private final UserRepository users;
     private final PasswordEncoder encoder;
     private final JwtService jwt;
+    private final RefreshTokenService refreshTokens;
 
-    public AuthService(UserRepository users, PasswordEncoder encoder, JwtService jwt) {
+    public AuthService(UserRepository users, PasswordEncoder encoder, JwtService jwt, RefreshTokenService refreshTokens) {
         this.users = users;
         this.encoder = encoder;
         this.jwt = jwt;
+        this.refreshTokens = refreshTokens;
     }
 
     @Transactional
@@ -32,16 +34,27 @@ public class AuthService {
         return UserResponse.from(u);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public TokenResponse login(LoginRequest r) {
         User u = users.findByEmail(r.email().trim().toLowerCase())
                 .filter(found -> encoder.matches(r.password(), found.getPasswordHash()))
                 .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
-        return new TokenResponse(jwt.issue(u), "Bearer", jwt.ttlSeconds(), UserResponse.from(u));
+        return new TokenResponse(jwt.issue(u), "Bearer", jwt.ttlSeconds(), refreshTokens.issue(u.getId()), UserResponse.from(u));
     }
 
     @Transactional(readOnly = true)
     public UserResponse me(Long userId) {
         return UserResponse.from(users.findById(userId).orElseThrow(() -> new NotFoundException("User not found")));
+    }
+
+    /** Ganti password: wajib password lama; semua refresh token dicabut (sesi lain keluar). Access token lama hidup sampai habis (maks 30 menit). */
+    @Transactional
+    public void changePassword(Long userId, ChangePasswordRequest r) {
+        User u = users.findById(userId).orElseThrow(() -> new NotFoundException("User not found"));
+        if (!encoder.matches(r.currentPassword(), u.getPasswordHash())) {
+            throw new UnauthorizedException("Current password is incorrect");
+        }
+        u.changePasswordHash(encoder.encode(r.newPassword()));
+        refreshTokens.revokeAllForUser(userId);
     }
 }

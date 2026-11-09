@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -14,9 +16,11 @@ import jakarta.validation.Valid;
 public class AuthController {
 
     private final AuthService service;
+    private final RefreshTokenService refreshTokens;
 
-    public AuthController(AuthService service) {
+    public AuthController(AuthService service, RefreshTokenService refreshTokens) {
         this.service = service;
+        this.refreshTokens = refreshTokens;
     }
 
     @Operation(summary = "Daftar akun customer baru")
@@ -32,5 +36,27 @@ public class AuthController {
     @PostMapping("/login")
     public TokenResponse login(@Valid @RequestBody LoginRequest request) {
         return service.login(request);
+    }
+
+    @Operation(summary = "Tukar refresh token dengan access token baru; refresh token lama dicabut (rotasi)")
+    @SecurityRequirements
+    @PostMapping("/refresh")
+    public TokenResponse refresh(@Valid @RequestBody RefreshRequest request) {
+        return refreshTokens.refresh(request.refreshToken());
+    }
+
+    @Operation(summary = "Logout: cabut refresh token (idempoten)")
+    @SecurityRequirements
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void logout(@Valid @RequestBody RefreshRequest request) {
+        refreshTokens.revoke(request.refreshToken());
+    }
+
+    @Operation(summary = "Ganti password; mencabut semua refresh token")
+    @PostMapping("/change-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void changePassword(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ChangePasswordRequest request) {
+        service.changePassword(Long.valueOf(jwt.getSubject()), request);
     }
 }
