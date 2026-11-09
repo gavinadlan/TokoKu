@@ -8,6 +8,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 @RestController
@@ -17,10 +18,12 @@ public class AuthController {
 
     private final AuthService service;
     private final RefreshTokenService refreshTokens;
+    private final LoginRateLimiter rateLimiter;
 
-    public AuthController(AuthService service, RefreshTokenService refreshTokens) {
+    public AuthController(AuthService service, RefreshTokenService refreshTokens, LoginRateLimiter rateLimiter) {
         this.service = service;
         this.refreshTokens = refreshTokens;
+        this.rateLimiter = rateLimiter;
     }
 
     @Operation(summary = "Daftar akun customer baru")
@@ -34,7 +37,8 @@ public class AuthController {
     @Operation(summary = "Login dan dapatkan JWT access token")
     @SecurityRequirements
     @PostMapping("/login")
-    public TokenResponse login(@Valid @RequestBody LoginRequest request) {
+    public TokenResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
+        rateLimiter.check(request.email(), http.getRemoteAddr()); // di prod IP asli via forward-headers-strategy
         return service.login(request);
     }
 

@@ -1,5 +1,6 @@
 server:
   port: ${PORT:8080}
+  forward-headers-strategy: framework   # di belakang proxy Render: IP klien dari X-Forwarded-For
 spring:
   datasource:
     url: ${DATABASE_URL}
