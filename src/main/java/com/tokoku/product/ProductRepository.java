@@ -19,5 +19,14 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             """)
     Page<Product> search(@Param("pattern") String pattern, @Param("categoryId") Long categoryId, Pageable pageable);
 
+    @Query("""
+            select p from Product p
+            where lower(p.name) like :pattern
+              and (:categoryId is null or p.category.id = :categoryId)
+              and (:active is null or p.active = :active)
+            """)
+    Page<Product> searchAll(@Param("pattern") String pattern, @Param("categoryId") Long categoryId,
+            @Param("active") Boolean active, Pageable pageable);
+
     Optional<Product> findByIdAndActiveTrue(Long id);
 }

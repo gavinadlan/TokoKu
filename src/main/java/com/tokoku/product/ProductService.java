@@ -25,6 +25,12 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
+    public Page<ProductResponse> searchAll(String q, Long categoryId, Boolean active, Pageable pageable) {
+        String pattern = "%" + (q == null ? "" : q.trim().toLowerCase()) + "%";
+        return products.searchAll(pattern, categoryId, active, pageable).map(ProductResponse::from);
+    }
+
+    @Transactional(readOnly = true)
     public ProductResponse get(Long id) {
         return ProductResponse.from(products.findByIdAndActiveTrue(id).orElseThrow(() -> notFound(id)));
     }
