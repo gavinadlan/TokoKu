@@ -1,5 +1,8 @@
 package com.tokoku.payment;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import java.math.BigDecimal;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -15,6 +18,7 @@ import com.tokoku.payment.PaymentDtos.SimulationResult;
 @Profile("!prod")
 @ConditionalOnProperty(name = "app.payment.provider", havingValue = "fake")
 @RequestMapping("/api/dev/payments")
+@Tag(name = "Dev")
 public class DevPaymentController {
 
     private final PaymentService service;
@@ -30,6 +34,8 @@ public class DevPaymentController {
         this.gateway = gateway;
     }
 
+    @Operation(summary = "Simulasikan webhook pembayaran (settlement|expire|deny); hanya provider fake non-prod")
+    @SecurityRequirements
     @PostMapping("/{ref}/simulate")
     public SimulationResult simulate(@PathVariable String ref, @RequestParam String status) {
         if (!java.util.Set.of("settlement", "expire", "deny").contains(status)) {

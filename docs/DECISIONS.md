@@ -30,3 +30,9 @@
 - **Nominal harus rupiah bulat** untuk Midtrans (`gross_amount` integer). Harga pecahan ditolak dengan 502.
 - **Tidak memakai `callbacks.finish`**; URL frontend belum ada.
 - **Belum terverifikasi dari dokumentasi:** batas panjang `order_id` dan nama item (dipatuhi konservatif: 50), serta rumus `gross_amount == sum(item)` (dipatuhi).
+
+## Fase 5
+- **Gate JaCoCo** (`verify`): cakupan baris minimal 70% untuk kelas `com/tokoku/**/*Service.class`, satu bundle. Hasil saat ini ±94% (sebagian besar dari test integrasi, yang menjalankan service sungguhan).
+- **Tema data seed: kopi dan perlengkapan seduh**, 6 kategori x 5 produk, harga rupiah masuk akal. `DevDataSeeder` hanya aktif di profil `dev`, dan dilewati bila tabel produk sudah berisi.
+- **OpenAPI:** skema Bearer global; endpoint publik menimpa dengan `@SecurityRequirements` kosong sehingga tidak bergembok di Swagger. Tag dan ringkasan dalam bahasa Indonesia.
+- **CI**: ditambah `permissions: contents: read`; tidak dijalankan di GitHub (belum ada remote). `actionlint` tidak tersedia, file dibaca ulang manual: `mvnw` executable, Docker tersedia di `ubuntu-latest` untuk Testcontainers, test tidak butuh secret (provider `fake`, JWT acak).

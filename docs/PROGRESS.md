@@ -20,3 +20,8 @@ CRUD produk dan kategori, Flyway V1, Docker, CI. 9 test.
 - **Verifikasi sandbox nyata (manual):** backend lokal + kunci dari `.env` (nilai tidak dicetak). Alur: login admin → buat produk → register customer → cart → checkout (order 1, Rp170.000) → `POST /api/orders/1/pay` → **HTTP 200**, Midtrans sandbox mengembalikan `token` (UUID 36 karakter) dan `redirect_url` berbentuk `https://app.sandbox.midtrans.com/snap/v4/redirection/<token>`.
 - Webhook (notifikasi BUATAN ditandatangani server key dari `.env`, dikirim ke endpoint lokal): signature salah → 403; settlement → 200 dan order `PAID`; kirim ulang → 200 tanpa perubahan.
 - **Belum terbukti:** pembayaran sandbox sungguhan dan webhook asli dari Midtrans (butuh tunnel publik dan menyelesaikan pembayaran di halaman Snap).
+
+## Fase 5: Test dan dokumentasi (selesai)
+- JaCoCo + gate 70% kelas service (aktual ±94%), OpenAPI Bearer + tag + deskripsi Indonesia, `DevDataSeeder` (kopi), test alur penuh register → PAID, README lengkap.
+- Bukti: `./mvnw -B verify` hijau, 60 test, jacoco `check` lolos.
+- CI: belum pernah berjalan di GitHub (tidak ada remote); `actionlint` tidak ada, diperiksa manual.

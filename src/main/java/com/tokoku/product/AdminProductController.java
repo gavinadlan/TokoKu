@@ -1,5 +1,7 @@
 package com.tokoku.product;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -7,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/admin/products")
+@Tag(name = "Admin")
 public class AdminProductController {
 
     private final ProductService service;
@@ -16,6 +19,7 @@ public class AdminProductController {
     }
 
     // Seperti daftar publik, tetapi termasuk produk nonaktif; filter active=true|false opsional
+    @Operation(summary = "Daftar semua produk termasuk nonaktif, filter active (ADMIN)")
     @GetMapping
     public Page<ProductResponse> list(@RequestParam(required = false) String q,
             @RequestParam(required = false) Long category,
