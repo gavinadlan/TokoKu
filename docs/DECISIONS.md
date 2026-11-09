@@ -17,3 +17,16 @@
 - **Order orang lain = 404**, bukan 403.
 - `GET /api/admin/orders/{id}` ditambahkan (di luar PRD) untuk halaman detail admin.
 - Item keranjang tidak mereservasi stok; validasi stok terjadi saat tambah/ubah dan diulang secara atomik saat checkout.
+
+## Fase 4
+- **Provider default `midtrans`** (dev dan prod); test otomatis memaksa `fake` lewat `@SpringBootTest(properties=...)`. Dev tanpa kunci: `APP_PAYMENT_PROVIDER=fake`. `fake` ditolak start di profil prod, dan endpoint `/api/dev/**` hanya ada jika `fake` dan profil bukan prod (dibuktikan `DevEndpointAvailabilityTest`).
+- **Env Midtrans yang dipakai:** `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, `MIDTRANS_API_URL` (URL Snap). `MIDTRANS_MERCHANT_ID`, `MIDTRANS_CORE_API_URL`, `MIDTRANS_USE_CORE_API` ada di `.env` tetapi **belum dipakai** (kita memakai Snap, bukan Core API).
+- **Satu `provider_ref` per percobaan bayar** (`TKU-<orderId>-<8 hex>`), karena Midtrans hanya menerima `order_id` sekali. Webhook dicocokkan lewat `provider_ref`.
+- **Idempotensi `/pay`:** baris order dikunci (`FOR UPDATE`), dan unique index parsial menjamin maksimal satu payment `PENDING` per order.
+- **Idempotensi webhook:** baris payment dikunci; jika status payment sudah bukan `PENDING`, notifikasi diabaikan (200). Jadi `expire` yang datang terlambat tidak membatalkan order yang sudah `PAID`.
+- **Respons webhook:** signature salah = 403, payment tidak dikenal = 404, nominal beda = 400, sisanya 200. Midtrans mencoba ulang pada non-2xx.
+- **`capture` dianggap sukses hanya jika `fraud_status` kosong atau `accept`.** `pending`/`authorize`/`refund` diabaikan.
+- **Pembayaran masuk setelah order dibatalkan** (settlement terlambat) hanya dicatat (log warn); butuh refund manual. Risiko terbuka.
+- **Nominal harus rupiah bulat** untuk Midtrans (`gross_amount` integer). Harga pecahan ditolak dengan 502.
+- **Tidak memakai `callbacks.finish`**; URL frontend belum ada.
+- **Belum terverifikasi dari dokumentasi:** batas panjang `order_id` dan nama item (dipatuhi konservatif: 50), serta rumus `gross_amount == sum(item)` (dipatuhi).
