@@ -1,0 +1,51 @@
+import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
+import { Guarded } from './components/GuardedRoute';
+import { Layout } from './components/Layout';
+import { NotFoundPage, RouteError } from './pages/NotFound';
+
+/* Halaman dimuat malas (code splitting): katalog tidak perlu mengunduh kode admin. */
+const lazy = <T extends Record<string, unknown>>(load: () => Promise<T>, key: keyof T) => async () => ({ Component: (await load())[key] as never });
+
+const routes: RouteObject[] = [
+  {
+    path: '/',
+    Component: Layout,
+    ErrorBoundary: RouteError,
+    children: [
+      { index: true, lazy: lazy(() => import('./pages/Catalog'), 'CatalogPage') },
+      { path: 'produk/:id', lazy: lazy(() => import('./pages/Product'), 'ProductPage') },
+      { path: 'masuk', lazy: lazy(() => import('./pages/Auth'), 'LoginPage') },
+      { path: 'daftar', lazy: lazy(() => import('./pages/Auth'), 'RegisterPage') },
+      {
+        Component: Guarded,
+        children: [
+          { path: 'keranjang', lazy: lazy(() => import('./pages/Cart'), 'CartPage') },
+          { path: 'checkout', lazy: lazy(() => import('./pages/Checkout'), 'CheckoutPage') },
+          { path: 'order', lazy: lazy(() => import('./pages/Orders'), 'OrdersPage') },
+          { path: 'order/:id', lazy: lazy(() => import('./pages/Orders'), 'OrderDetailPage') },
+          { path: 'order/:id/status', lazy: lazy(() => import('./pages/PaymentStatus'), 'OrderStatusPage') },
+          { path: 'pembayaran/selesai', lazy: lazy(() => import('./pages/PaymentStatus'), 'PaymentReturnPage') },
+          ...(import.meta.env.DEV ? [{ path: 'dev/bayar/:ref', lazy: lazy(() => import('./pages/DevPay'), 'DevPayPage') }] : []),
+        ],
+      },
+      {
+        path: 'admin',
+        Component: () => <Guarded role="ADMIN" />,
+        children: [
+          {
+            lazy: lazy(() => import('./pages/admin/AdminLayout'), 'AdminLayout'),
+            children: [
+              { index: true, element: <Navigate to="/admin/produk" replace /> },
+              { path: 'produk', lazy: lazy(() => import('./pages/admin/AdminProducts'), 'AdminProductsPage') },
+              { path: 'kategori', lazy: lazy(() => import('./pages/admin/AdminCategories'), 'AdminCategoriesPage') },
+              { path: 'order', lazy: lazy(() => import('./pages/admin/AdminOrders'), 'AdminOrdersPage') },
+            ],
+          },
+        ],
+      },
+      { path: '*', Component: NotFoundPage },
+    ],
+  },
+];
+
+export const router = createBrowserRouter(routes);
