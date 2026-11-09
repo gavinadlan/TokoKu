@@ -67,6 +67,10 @@ public class Order {
         status = next;
     }
 
+    public boolean isOverdue(Instant cutoff) {
+        return status == OrderStatus.PENDING_PAYMENT && createdAt.isBefore(cutoff);
+    }
+
     public Long getId() { return id; }
     public Long getUserId() { return userId; }
     public OrderStatus getStatus() { return status; }

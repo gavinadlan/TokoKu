@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -22,4 +23,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     Optional<Payment> findFirstByOrderIdAndStatus(Long orderId, PaymentStatus status);
 
     List<Payment> findByOrderId(Long orderId);
+
+    // Menutup percobaan bayar yang masih menggantung saat order dibatalkan/kedaluwarsa
+    @Modifying(flushAutomatically = true)
+    @Query("update Payment p set p.status = com.tokoku.payment.PaymentStatus.EXPIRED "
+            + "where p.orderId = :orderId and p.status = com.tokoku.payment.PaymentStatus.PENDING")
+    int closePending(@Param("orderId") Long orderId);
 }

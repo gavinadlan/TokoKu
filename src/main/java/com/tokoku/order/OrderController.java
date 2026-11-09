@@ -45,4 +45,10 @@ public class OrderController {
     public OrderResponse get(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
         return service.getMine(Long.valueOf(jwt.getSubject()), id);
     }
+
+    @Operation(summary = "Batalkan order yang belum dibayar; stok dikembalikan")
+    @PostMapping("/{id}/cancel")
+    public OrderResponse cancel(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+        return service.cancelMine(Long.valueOf(jwt.getSubject()), id);
+    }
 }

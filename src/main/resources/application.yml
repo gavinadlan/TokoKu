@@ -31,5 +31,6 @@ app:
       snap-url: ${MIDTRANS_API_URL:https://app.sandbox.midtrans.com/snap/v1/transactions}
   order:
     expiry-minutes: ${APP_ORDER_EXPIRY_MINUTES:60}
+    expiry-check-ms: 300000        # scheduler tiap 5 menit
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}

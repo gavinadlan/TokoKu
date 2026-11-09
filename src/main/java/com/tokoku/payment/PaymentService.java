@@ -48,10 +48,11 @@ public class PaymentService {
     }
 
     /** Memulai pembayaran. Idempoten: jika sudah ada pembayaran PENDING untuk order ini, itu yang dikembalikan. */
-    @Transactional
+    @Transactional(noRollbackFor = ConflictException.class) // pembatalan karena kedaluwarsa harus tetap tersimpan
     public PayResponse pay(Long userId, Long orderId) {
         Order order = orders.findOwnedForUpdate(orderId, userId)
                 .orElseThrow(() -> new NotFoundException("Order " + orderId + " not found"));
+        orderService.cancelIfOverdue(order);
         if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
             throw new ConflictException("Order is " + order.getStatus() + ", only PENDING_PAYMENT can be paid");
         }
@@ -64,7 +65,7 @@ public class PaymentService {
         List<Item> items = order.getItems().stream()
                 .map(i -> new Item("P" + i.getProductId(), i.getProductName(), i.getUnitPrice(), i.getQuantity())).toList();
         PaymentSession session = gateway.createPayment(new PaymentRequest(ref, order.getTotalAmount(), items,
-                order.getShippingName(), user.getEmail(), order.getShippingPhone(), expiryMinutes));
+                order.getShippingName(), user.getEmail(), order.getShippingPhone(), remainingMinutes(order)));
         Payment payment = payments.save(new Payment(orderId, ref, order.getTotalAmount(), session.token(), session.redirectUrl()));
         return toResponse(payment);
     }
@@ -78,8 +79,11 @@ public class PaymentService {
         if (n.orderId() == null || n.signatureKey() == null || !gateway.verifySignature(n)) {
             throw new InvalidSignatureException("Invalid signature");
         }
-        Payment payment = payments.findByProviderRefForUpdate(n.orderId())
+        // Urutan kunci SELALU order lalu payment (sama seperti pay/cancel/expire) agar tidak terjadi deadlock
+        Payment known = payments.findByProviderRef(n.orderId())
                 .orElseThrow(() -> new NotFoundException("Unknown payment reference"));
+        Order order = orders.findByIdForUpdate(known.getOrderId()).orElseThrow();
+        Payment payment = payments.findByProviderRefForUpdate(n.orderId()).orElseThrow();
         if (n.grossAmount() == null || payment.getAmount().compareTo(parseAmount(n.grossAmount())) != 0) {
             throw new IllegalArgumentException("Amount does not match the order total");
         }
@@ -90,17 +94,16 @@ public class PaymentService {
         boolean success = status.equals("settlement")
                 || (status.equals("capture") && (n.fraudStatus() == null || n.fraudStatus().equals("accept")));
         if (success) {
-            onSuccess(payment);
+            onSuccess(payment, order);
         } else if (status.equals("expire")) {
-            onFailure(payment, PaymentStatus.EXPIRED);
+            onFailure(payment, order, PaymentStatus.EXPIRED);
         } else if (status.equals("deny") || status.equals("cancel") || status.equals("failure")) {
-            onFailure(payment, PaymentStatus.FAILED);
+            onFailure(payment, order, PaymentStatus.FAILED);
         }
         // pending / authorize / refund, dll: abaikan, tidak ada perubahan
     }
 
-    private void onSuccess(Payment payment) {
-        Order order = orders.findById(payment.getOrderId()).orElseThrow();
+    private void onSuccess(Payment payment, Order order) {
         payment.markPaid();
         if (order.getStatus() == OrderStatus.PENDING_PAYMENT) {
             order.transitionTo(OrderStatus.PAID);
@@ -110,12 +113,17 @@ public class PaymentService {
         }
     }
 
-    private void onFailure(Payment payment, PaymentStatus ended) {
-        Order order = orders.findById(payment.getOrderId()).orElseThrow();
+    private void onFailure(Payment payment, Order order, PaymentStatus ended) {
         payment.markEnded(ended);
         if (order.getStatus() == OrderStatus.PENDING_PAYMENT) {
             orderService.cancelAndRestock(order); // terakhir: update stok melakukan flush
         }
+    }
+
+    // Batas bayar di Midtrans = sisa umur order, supaya pembayaran tidak bisa masuk setelah order kedaluwarsa
+    private int remainingMinutes(Order order) {
+        long used = java.time.Duration.between(order.getCreatedAt(), java.time.Instant.now()).toMinutes();
+        return (int) Math.max(1, expiryMinutes - used);
     }
 
     private static BigDecimal parseAmount(String s) {

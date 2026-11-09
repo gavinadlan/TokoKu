@@ -1,5 +1,7 @@
 package com.tokoku.order;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -23,4 +25,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("select o from Order o where (:status is null or o.status = :status)")
     Page<Order> findAllByStatus(@Param("status") OrderStatus status, Pageable pageable);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select o from Order o where o.id = :id")
+    Optional<Order> findByIdForUpdate(@Param("id") Long id);
+
+    // Dikunci supaya scheduler dan pembacaan "malas" tidak membatalkan order yang sama dua kali (stok kembali dobel)
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select o from Order o where o.status = com.tokoku.order.OrderStatus.PENDING_PAYMENT and o.createdAt < :cutoff order by o.id")
+    List<Order> findOverdueForUpdate(@Param("cutoff") Instant cutoff, Pageable pageable);
 }
