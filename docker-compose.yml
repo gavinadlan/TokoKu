@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: tokoku
+      POSTGRES_USER: tokoku
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    ports:
+      - "${DB_PORT:-5432}:5432"   # agar app lokal bisa konek; ubah DB_PORT jika 5432 terpakai
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tokoku"]
+      interval: 5s
+      retries: 10
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DATABASE_URL: jdbc:postgresql://db:5432/tokoku
+      DATABASE_USER: tokoku
+      DATABASE_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "8080:8080"
+volumes:
+  pgdata:
