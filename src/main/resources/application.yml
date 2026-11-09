@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: tokoku
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/tokoku}
+    username: ${DATABASE_USER:tokoku}
+    password: ${DATABASE_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate          # skema hanya dikelola Flyway
+  flyway:
+    enabled: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
