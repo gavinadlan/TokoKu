@@ -27,6 +27,10 @@ services:
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-}
+      APP_PAYMENT_PROVIDER: ${APP_PAYMENT_PROVIDER:-midtrans}
+      MIDTRANS_SERVER_KEY: ${MIDTRANS_SERVER_KEY:-}
+      MIDTRANS_CLIENT_KEY: ${MIDTRANS_CLIENT_KEY:-}
+      MIDTRANS_API_URL: ${MIDTRANS_API_URL:-https://app.sandbox.midtrans.com/snap/v1/transactions}
     ports:
       - "8080:8080"
 volumes:
