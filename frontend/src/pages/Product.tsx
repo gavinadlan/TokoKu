@@ -92,13 +92,13 @@ export function ProductPage() {
                 <span id="qty-label">Jumlah</span>
                 <div className="stepper" role="group" aria-labelledby="qty-label">
                   <button type="button" aria-label="Kurangi jumlah" disabled={quantity <= 1} onClick={() => setQty(quantity - 1)}>
-                    &minus;
+                    <span aria-hidden="true">&minus;</span>
                   </button>
                   <output className="tnum" aria-live="polite">
                     {quantity}
                   </output>
                   <button type="button" aria-label="Tambah jumlah" disabled={quantity >= maxAddable} onClick={() => setQty(quantity + 1)}>
-                    +
+                    <span aria-hidden="true">+</span>
                   </button>
                 </div>
               </div>

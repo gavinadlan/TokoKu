@@ -50,7 +50,7 @@ export function CartPage() {
                 const over = item.quantity > item.availableStock;
                 return (
                   <li className="line" key={item.id}>
-                    <Link to={`/produk/${item.productId}`} aria-label={item.productName}>
+                    <Link to={`/produk/${item.productId}`} aria-hidden="true" tabIndex={-1}>
                       <ProductVisual id={item.productId} categoryId={item.productId} name={item.productName} imageUrl={item.imageUrl} size="thumb" />
                     </Link>
                     <div className="body">
@@ -66,7 +66,7 @@ export function CartPage() {
                       <div className="controls">
                         <div className="stepper" role="group" aria-label={`Jumlah ${item.productName}`}>
                           <button type="button" aria-label="Kurangi jumlah" disabled={item.quantity <= 1} onClick={() => update.mutate({ itemId: item.id, quantity: item.quantity - 1 })}>
-                            &minus;
+                            <span aria-hidden="true">&minus;</span>
                           </button>
                           <output className="tnum">{item.quantity}</output>
                           <button
@@ -75,7 +75,7 @@ export function CartPage() {
                             disabled={item.quantity >= item.availableStock}
                             onClick={() => update.mutate({ itemId: item.id, quantity: clampQuantity(item.quantity + 1, item.availableStock) })}
                           >
-                            +
+                            <span aria-hidden="true">+</span>
                           </button>
                         </div>
                         <span className="sub">{formatRupiah(item.subtotal)}</span>

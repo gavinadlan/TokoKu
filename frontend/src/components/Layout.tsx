@@ -1,9 +1,10 @@
 import { Outlet, ScrollRestoration } from 'react-router';
 import { Header } from './Header';
+import { ToastProvider } from './Toast';
 
 export function Layout() {
   return (
-    <>
+    <ToastProvider>
       <a className="skip" href="#konten">
         Lewati ke konten
       </a>
@@ -12,6 +13,6 @@ export function Layout() {
         <Outlet />
       </main>
       <ScrollRestoration />
-    </>
+    </ToastProvider>
   );
 }

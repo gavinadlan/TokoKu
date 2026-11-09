@@ -86,12 +86,15 @@ export function Header() {
           <SearchField id="q-desktop" className="desktop" />
           <nav className="nav" aria-label="Utama">
             {status === 'authenticated' ? <AccountMenu key={pathname} /> : status === 'anonymous' ? <NavLink to="/masuk">Masuk</NavLink> : null}
-            <NavLink to="/keranjang" aria-label={count > 0 ? `Keranjang, ${count} barang` : 'Keranjang'}>
+            <NavLink to="/keranjang">
               Keranjang
               {count > 0 && (
-                <span className="cart-count bump tnum" key={count} aria-hidden="true">
-                  {count}
-                </span>
+                <>
+                  <span className="cart-count bump tnum" key={count} aria-hidden="true">
+                    {count}
+                  </span>
+                  <span className="sr-only">, {count} barang</span>
+                </>
               )}
             </NavLink>
           </nav>
