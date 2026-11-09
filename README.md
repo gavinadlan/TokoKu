@@ -4,7 +4,8 @@ Backend e-commerce Spring Boot (Java 21, Spring Boot 4.1.2, PostgreSQL, Flyway, 
 Proyek belajar bertahap. Dokumen produk dan infrastruktur: [docs/PRD.md](docs/PRD.md).
 Catatan keputusan: [docs/DECISIONS.md](docs/DECISIONS.md). Log kemajuan dan bukti verifikasi: [docs/PROGRESS.md](docs/PROGRESS.md).
 
-Backend lengkap (auth, katalog, keranjang, order, pembayaran). Frontend belum ada: gunakan Swagger UI.
+Backend lengkap (auth + refresh token, katalog, keranjang, order, pembayaran Midtrans). Frontend belum ada: gunakan Swagger UI.
+Belum ada: cache Redis (opsional di PRD, dilewati), upload gambar (produk hanya menyimpan `imageUrl`), email, login Google.
 
 ## Menjalankan lokal
 
@@ -58,6 +59,7 @@ docker compose up --build
 | `MIDTRANS_API_URL` | default Snap sandbox | isi URL Snap produksi bila live | |
 | `MIDTRANS_MERCHANT_ID`, `MIDTRANS_CORE_API_URL`, `MIDTRANS_USE_CORE_API` | - | - | Belum dipakai (kita memakai Snap) |
 | `APP_ORDER_EXPIRY_MINUTES` | 60 | 60 | Kedaluwarsa order belum dibayar |
+| `APP_RATELIMIT_LOGIN_PER_EMAIL`, `APP_RATELIMIT_LOGIN_PER_IP` | 5 / 30 | 5 / 30 | Percobaan login per menit |
 
 ## Struktur paket
 
@@ -68,7 +70,10 @@ docker compose up --build
 1. `POST /api/auth/register` membuat akun role `USER`.
 2. `POST /api/auth/login` mengembalikan `accessToken` (JWT HS256, 30 menit) dan data `user`.
 3. Kirim `Authorization: Bearer <token>` pada setiap request yang butuh login. `GET /api/me` mengembalikan profil dan role.
-4. Role: `USER` (belanja) dan `ADMIN` (kelola produk, kategori, order). Tanpa token = 401, role kurang = 403, keduanya dalam format `ProblemDetail`.
+4. Login juga mengembalikan `refreshToken` (acak, berlaku 14 hari, hanya hash-nya disimpan di DB). Saat access token habis, `POST /api/auth/refresh` menukarnya dengan access token baru **dan refresh token baru**; yang lama dicabut (rotasi). Memakai ulang refresh token lama dianggap pencurian: seluruh sesi pengguna dicabut.
+5. `POST /api/auth/logout` (body `refreshToken`) mencabut sesi. `POST /api/auth/change-password` (login, butuh password lama) mencabut semua refresh token.
+6. Login dibatasi 5 percobaan per menit per email dan 30 per menit per IP (429 + header `Retry-After`; in-memory, atur lewat `app.ratelimit.login.*`).
+7. Role: `USER` (belanja) dan `ADMIN` (kelola produk, kategori, order). Tanpa token = 401, role kurang = 403, keduanya dalam format `ProblemDetail`.
 
 ## Alur pembayaran
 
@@ -76,6 +81,8 @@ docker compose up --build
 2. `POST /api/orders/{id}/pay` mengembalikan `token`, `redirectUrl`, dan `clientKey`. Frontend membuka `redirectUrl` (atau Snap.js dengan `token`). Memanggil ulang mengembalikan pembayaran yang sama.
 3. Midtrans memanggil `POST /api/payments/webhook`. Signature (`SHA512(order_id+status_code+gross_amount+ServerKey)`) diverifikasi, nominal dicocokkan. `settlement` (atau `capture` dengan fraud `accept`) menjadikan order `PAID`. `expire`/`cancel`/`deny` membatalkan order dan mengembalikan stok. Webhook ganda tidak mengubah apa pun.
 4. Admin memajukan status: `PROCESSING` → `SHIPPED` → `COMPLETED`.
+
+Pembatalan dan kedaluwarsa: customer dapat `POST /api/orders/{id}/cancel` selama `PENDING_PAYMENT` (stok kembali). Order yang belum dibayar melewati `APP_ORDER_EXPIRY_MINUTES` (default 60) dibatalkan otomatis dan stoknya kembali, lewat scheduler (tiap 5 menit) **dan** pengecekan "malas" saat order dibaca, `/pay`, dan checkout. Pengecekan malas dibutuhkan karena di Render gratis aplikasi tidur saat idle sehingga scheduler tidak berjalan.
 
 Provider `fake` (dev/test): `POST /api/dev/payments/{providerRef}/simulate?status=settlement|expire|deny` (tidak ada di prod).
 
@@ -94,17 +101,22 @@ Lihat tabel lengkap di bagian **Kontrak API** di bawah (diperbarui bersama kode)
 | Method | Path | Akses | Fungsi |
 | --- | --- | --- | --- |
 | POST | `/api/auth/register` | Publik | Daftar akun |
-| POST | `/api/auth/login` | Publik | Login, JWT |
+| POST | `/api/auth/login` | Publik | Login, JWT + refresh token (429 bila terlalu sering) |
+| POST | `/api/auth/refresh` | Publik | Tukar refresh token (rotasi) |
+| POST | `/api/auth/logout` | Publik | Cabut refresh token |
+| POST | `/api/auth/change-password` | Login | Ganti password |
 | GET | `/api/me` | Login | Profil dan role |
 | GET | `/api/products` | Publik | Daftar produk aktif (`q`, `category`, `page`, `size`, `sort`) |
 | GET | `/api/products/{id}` | Publik | Detail produk aktif |
-| POST | `/api/products` | Admin | Tambah produk |
+| POST | `/api/products` | Admin | Tambah produk (`imageUrl` opsional, URL http/https) |
 | PUT | `/api/products/{id}` | Admin | Ubah produk |
 | PATCH | `/api/products/{id}/stock` | Admin | Atur stok (`{"stock": n}`) |
 | DELETE | `/api/products/{id}` | Admin | Nonaktifkan produk |
 | GET | `/api/admin/products` | Admin | Semua produk, filter `active` |
 | GET | `/api/categories` | Publik | Daftar kategori (tambahan di luar tabel PRD) |
 | POST | `/api/categories` | Admin | Tambah kategori (tambahan di luar tabel PRD) |
+| PUT | `/api/categories/{id}` | Admin | Ubah nama kategori |
+| DELETE | `/api/categories/{id}` | Admin | Hapus kategori (409 jika masih punya produk) |
 | GET | `/api/cart` | Login | Lihat keranjang |
 | POST | `/api/cart/items` | Login | Tambah item |
 | PUT | `/api/cart/items/{id}` | Login | Ubah jumlah |
@@ -112,6 +124,7 @@ Lihat tabel lengkap di bagian **Kontrak API** di bawah (diperbarui bersama kode)
 | POST | `/api/orders` | Login | Checkout dari keranjang |
 | GET | `/api/orders` | Login | Riwayat order sendiri |
 | GET | `/api/orders/{id}` | Login | Detail order sendiri |
+| POST | `/api/orders/{id}/cancel` | Login | Batalkan order belum dibayar |
 | POST | `/api/orders/{id}/pay` | Login | Mulai pembayaran |
 | POST | `/api/payments/webhook` | Publik (signature) | Notifikasi Midtrans |
 | GET | `/api/admin/orders` | Admin | Semua order (`status`, pagination) |

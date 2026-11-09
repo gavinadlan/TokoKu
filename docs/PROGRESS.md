@@ -25,3 +25,8 @@ CRUD produk dan kategori, Flyway V1, Docker, CI. 9 test.
 - JaCoCo + gate 70% kelas service (aktual ±94%), OpenAPI Bearer + tag + deskripsi Indonesia, `DevDataSeeder` (kopi), test alur penuh register → PAID, README lengkap.
 - Bukti: `./mvnw -B verify` hijau, 60 test, jacoco `check` lolos.
 - CI: belum pernah berjalan di GitHub (tidak ada remote); `actionlint` tidak ada, diperiksa manual.
+
+## Fase 6: Penyempurnaan (selesai, butir 7 dilewati)
+1. Pembatalan order oleh pemilik. 2. Kedaluwarsa: `@Scheduled` + pengecekan malas. 3. Refresh token (hash, rotasi, deteksi pemakaian ulang), logout, change-password. 4. Kategori PUT/DELETE (409 bila ada produk). 5. `image_url`. 6. Rate limit login Bucket4j (429).
+7. **Cache Redis: dilewati** (lihat DECISIONS).
+- Bukti: `./mvnw -B verify` hijau, 80 test, gate JaCoCo lolos. Test konkuren: cancel vs expiry mengembalikan stok tepat sekali.

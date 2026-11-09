@@ -36,3 +36,17 @@
 - **Tema data seed: kopi dan perlengkapan seduh**, 6 kategori x 5 produk, harga rupiah masuk akal. `DevDataSeeder` hanya aktif di profil `dev`, dan dilewati bila tabel produk sudah berisi.
 - **OpenAPI:** skema Bearer global; endpoint publik menimpa dengan `@SecurityRequirements` kosong sehingga tidak bergembok di Swagger. Tag dan ringkasan dalam bahasa Indonesia.
 - **CI**: ditambah `permissions: contents: read`; tidak dijalankan di GitHub (belum ada remote). `actionlint` tidak tersedia, file dibaca ulang manual: `mvnw` executable, Docker tersedia di `ubuntu-latest` untuk Testcontainers, test tidak butuh secret (provider `fake`, JWT acak).
+
+## Fase 6
+- **Urutan kunci baris: order dulu, lalu payment** di semua jalur (pay, webhook, cancel, expire) supaya tidak ada deadlock. Webhook membaca payment tanpa kunci untuk mendapat `order_id`, mengunci order, baru mengunci payment.
+- **Pembatalan/kedaluwarsa memakai satu metode `OrderService.cancelAndRestock`**: transisi → `CANCELLED`, menutup payment `PENDING` (`EXPIRED`), mengembalikan stok. Mengunci baris order (`FOR UPDATE`) supaya scheduler, pembacaan malas, pembatalan pemilik, dan webhook tidak mengembalikan stok dua kali (dibuktikan test konkuren cancel vs expiry).
+- **Kedaluwarsa malas** (di `GET /api/orders`, `GET /api/orders/{id}`, `POST /pay`, `POST /api/orders`) selain `@Scheduled` tiap 5 menit, karena Render gratis tidur saat idle. `GET /api/admin/orders*` tidak memicunya (hanya baca).
+- **Batas bayar Midtrans = sisa umur order** (`expiry-minutes` dikurangi usia order), agar pembayaran tidak bisa masuk setelah order kedaluwarsa.
+- **Order dibatalkan tidak membatalkan transaksi di sisi Midtrans** (tidak memanggil API cancel). Pembayaran yang tetap masuk sesudahnya hanya dicatat (log warn) dan butuh refund manual. Risiko terbuka.
+- **Package `order` memakai `PaymentRepository`** (menutup payment menggantung), sedangkan `payment` memakai `OrderService`: siklus tingkat paket, bukan siklus bean. Diterima demi kesederhanaan; alternatif (event/antarmuka) dinilai berlebihan.
+- **Refresh token opaque** (32 byte acak, base64url), di DB hanya SHA-256. Rotasi dengan kunci baris; pemakaian ulang token yang sudah dicabut mencabut seluruh sesi pengguna (deteksi pencurian). `change-password` mencabut semua refresh token; access token lama tetap valid sampai habis (maks 30 menit), tidak ada daftar tolak access token.
+- **`/api/auth/logout` publik** (menerima refresh token), idempoten (204 walau token tak dikenal).
+- **Hapus kategori ditolak 409 selama ada produk** (termasuk nonaktif, karena baris produk tetap ada dan FK menahannya).
+- **`image_url`**: hanya URL `http(s)`, maks 500 karakter; skema lain (mis. `javascript:`) ditolak 400. Upload file belum ada.
+- **Rate limit login**: Bucket4j in-memory, 5/menit per email dan 30/menit per IP, dibatasi 10.000 kunci (LRU). Tidak dibagi antar instance dan hilang saat restart (batas yang diterima). IP asli di prod lewat `server.forward-headers-strategy=framework`. Test memakai batas longgar kecuali test 429 khusus.
+- **Butir 7 (cache Redis) DILEWATI.** Alasan: perlu serializer cache untuk `Page` di Spring Data Redis 4 + Jackson 3 (API belum pasti), invalidasi tiap stok berubah, Testcontainers Redis, dan fail-open; manfaatnya kecil untuk beban demo. `redis` tidak dikembalikan ke `docker-compose.yml`.
