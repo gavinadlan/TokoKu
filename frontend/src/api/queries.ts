@@ -1,10 +1,12 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, call } from './client';
+import { adminApi, api, call, callAdmin, fetchBlob } from './client';
 import type { CartResponse, CheckoutInput, ProductInput } from './types';
+import { useAdminAuth } from '../auth/AdminAuthContext';
 import { useAuth } from '../auth/AuthContext';
 import { withQuantity, without, type CartTotals } from '../lib/cart';
 import { apiSort, PAGE_SIZE, type CatalogParams } from '../lib/catalog';
 import type { OrderStatus } from '../lib/status';
+import type { StoreSettingsInput } from './types';
 
 /* ---------- katalog (publik) ---------- */
 export function useProducts(p: CatalogParams) {
@@ -27,6 +29,10 @@ export function useProduct(id: number) {
     retry: (count, error) => !(error instanceof Error && 'status' in error && error.status === 404) && count < 2,
     queryFn: () => call(() => api.GET('/api/products/{id}', { params: { path: { id } } })),
   });
+}
+
+export function useStore() {
+  return useQuery({ queryKey: ['store'], staleTime: 60_000, queryFn: () => call(() => api.GET('/api/store')) });
 }
 
 export function useCategories() {
@@ -129,13 +135,39 @@ export function useCancelOrder() {
   });
 }
 
-/* ---------- admin ---------- */
-export function useAdminProducts(p: { q: string; active: boolean | null; page: number }) {
+/* ---------- invoice (berkas PDF dengan token) ---------- */
+export function fetchInvoice(orderId: number, realm: 'store' | 'admin'): Promise<Blob> {
+  return fetchBlob(realm === 'admin' ? `/api/admin/orders/${orderId}/invoice` : `/api/orders/${orderId}/invoice`, realm);
+}
+
+/* ---------- admin (sesi admin, klien admin) ---------- */
+function useAdminEnabled() {
+  return useAdminAuth().status === 'authenticated';
+}
+
+export type ProductSort = 'id,desc' | 'id,asc' | 'name,asc' | 'name,desc' | 'price,asc' | 'price,desc' | 'stock,asc' | 'stock,desc';
+
+export function useAdminProducts(p: { q: string; active: boolean | null; category: number | null; page: number; sort: ProductSort }) {
+  const enabled = useAdminEnabled();
   return useQuery({
     queryKey: ['admin', 'products', p],
+    enabled,
     placeholderData: keepPreviousData,
     queryFn: () =>
-      call(() => api.GET('/api/admin/products', { params: { query: { q: p.q || undefined, active: p.active ?? undefined, page: p.page - 1, size: 15, sort: ['id,desc'] } } })),
+      callAdmin(() =>
+        adminApi.GET('/api/admin/products', {
+          params: { query: { q: p.q || undefined, active: p.active ?? undefined, category: p.category ?? undefined, page: p.page - 1, size: 15, sort: [p.sort] } },
+        }),
+      ),
+  });
+}
+
+export function useAdminProduct(id: number | null) {
+  const enabled = useAdminEnabled();
+  return useQuery({
+    queryKey: ['admin', 'product', id],
+    enabled: enabled && id !== null,
+    queryFn: () => callAdmin(() => adminApi.GET('/api/admin/products/{id}', { params: { path: { id: id! } } })),
   });
 }
 
@@ -151,8 +183,8 @@ export function useSaveProduct() {
   return useMutation({
     mutationFn: (v: { id?: number; body: ProductInput }) =>
       v.id
-        ? call(() => api.PUT('/api/products/{id}', { params: { path: { id: v.id! } }, body: v.body }))
-        : call(() => api.POST('/api/products', { body: v.body })),
+        ? callAdmin(() => adminApi.PUT('/api/products/{id}', { params: { path: { id: v.id! } }, body: v.body }))
+        : callAdmin(() => adminApi.POST('/api/products', { body: v.body })),
     onSuccess: () => invalidateCatalog(qc),
   });
 }
@@ -160,7 +192,7 @@ export function useSaveProduct() {
 export function useDeactivateProduct() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => call(() => api.DELETE('/api/products/{id}', { params: { path: { id } } })),
+    mutationFn: (id: number) => callAdmin(() => adminApi.DELETE('/api/products/{id}', { params: { path: { id } } })),
     onSuccess: () => invalidateCatalog(qc),
   });
 }
@@ -170,8 +202,8 @@ export function useSaveCategory() {
   return useMutation({
     mutationFn: (v: { id?: number; name: string }) =>
       v.id
-        ? call(() => api.PUT('/api/categories/{id}', { params: { path: { id: v.id! } }, body: { name: v.name } }))
-        : call(() => api.POST('/api/categories', { body: { name: v.name } })),
+        ? callAdmin(() => adminApi.PUT('/api/categories/{id}', { params: { path: { id: v.id! } }, body: { name: v.name } }))
+        : callAdmin(() => adminApi.POST('/api/categories', { body: { name: v.name } })),
     onSuccess: () => invalidateCatalog(qc),
   });
 }
@@ -179,25 +211,80 @@ export function useSaveCategory() {
 export function useDeleteCategory() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => call(() => api.DELETE('/api/categories/{id}', { params: { path: { id } } })),
+    mutationFn: (id: number) => callAdmin(() => adminApi.DELETE('/api/categories/{id}', { params: { path: { id } } })),
     onSuccess: () => invalidateCatalog(qc),
   });
 }
 
-export function useAdminOrders(p: { status: OrderStatus | null; page: number }) {
+export function useAdminOrders(p: { status: OrderStatus | null; page: number; sort: 'createdAt,desc' | 'createdAt,asc' | 'totalAmount,desc' | 'totalAmount,asc' | 'id,desc' | 'id,asc' }) {
+  const enabled = useAdminEnabled();
   return useQuery({
     queryKey: ['admin', 'orders', p],
+    enabled,
     placeholderData: keepPreviousData,
     queryFn: () =>
-      call(() => api.GET('/api/admin/orders', { params: { query: { status: p.status ?? undefined, page: p.page - 1, size: 15, sort: ['createdAt,desc'] } } })),
+      callAdmin(() => adminApi.GET('/api/admin/orders', { params: { query: { status: p.status ?? undefined, page: p.page - 1, size: 15, sort: [p.sort] } } })),
   });
+}
+
+export interface AdminStatusChange {
+  id: number;
+  status: 'PROCESSING' | 'SHIPPED' | 'READY_FOR_PICKUP' | 'COMPLETED';
+  courier?: string;
+  trackingNumber?: string;
+  pickupCode?: string;
 }
 
 export function useAdminOrderStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { id: number; status: 'PROCESSING' | 'SHIPPED' | 'COMPLETED' }) =>
-      call(() => api.PATCH('/api/admin/orders/{id}/status', { params: { path: { id: v.id } }, body: { status: v.status } })),
+    mutationFn: ({ id, ...body }: AdminStatusChange) => callAdmin(() => adminApi.PATCH('/api/admin/orders/{id}/status', { params: { path: { id } }, body })),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'orders'] }),
   });
+}
+
+export function useAdminStoreSettings() {
+  const enabled = useAdminEnabled();
+  return useQuery({ queryKey: ['admin', 'store'], enabled, queryFn: () => callAdmin(() => adminApi.GET('/api/admin/store-settings')) });
+}
+
+export function useSaveStoreSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: StoreSettingsInput) => callAdmin(() => adminApi.PUT('/api/admin/store-settings', { body })),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'store'] });
+      qc.invalidateQueries({ queryKey: ['store'] });
+    },
+  });
+}
+
+/* ---------- foto produk ---------- */
+export function useImageMutations(productId: number) {
+  const qc = useQueryClient();
+  const done = (product: unknown) => {
+    qc.setQueryData(['admin', 'product', productId], product);
+    invalidateCatalog(qc);
+  };
+  const path = { params: { path: { id: productId } } };
+  return {
+    sign: () => callAdmin(() => adminApi.POST('/api/admin/uploads/sign')),
+    register: useMutation({
+      mutationFn: (body: { publicId: string; version: number; signature: string; width?: number; height?: number; format: string; bytes: number }) =>
+        callAdmin(() => adminApi.POST('/api/admin/products/{id}/images', { ...path, body })),
+      onSuccess: done,
+    }),
+    reorder: useMutation({
+      mutationFn: (imageIds: number[]) => callAdmin(() => adminApi.PUT('/api/admin/products/{id}/images/order', { ...path, body: { imageIds } })),
+      onSuccess: done,
+    }),
+    makePrimary: useMutation({
+      mutationFn: (imageId: number) => callAdmin(() => adminApi.PATCH('/api/admin/products/{id}/images/{imageId}/primary', { params: { path: { id: productId, imageId } } })),
+      onSuccess: done,
+    }),
+    remove: useMutation({
+      mutationFn: (imageId: number) => callAdmin(() => adminApi.DELETE('/api/admin/products/{id}/images/{imageId}', { params: { path: { id: productId, imageId } } })),
+      onSuccess: done,
+    }),
+  };
 }

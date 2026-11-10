@@ -31,7 +31,8 @@ function StatusView({ orderId }: { orderId: number }) {
           <>
             <h1>Pembayaran diterima</h1>
             <p className="muted">
-              Terima kasih. Order No. {String(o.id).padStart(4, '0')} sebesar <b className="tnum">{formatRupiah(o.totalAmount)}</b> sudah dibayar dan sedang kami siapkan.
+              Terima kasih. Order No. {String(o.id).padStart(4, '0')} sebesar <b className="tnum">{formatRupiah(o.totalAmount)}</b> sudah dibayar dan sedang kami siapkan.{o.fulfillmentType === 'PICKUP' && ' Kode ambil ada di halaman order.'}
+              {o.fulfillmentType === 'PICKUP' && ' Kode ambil ada di halaman order.'}
             </p>
           </>
         ) : status === 'CANCELLED' ? (

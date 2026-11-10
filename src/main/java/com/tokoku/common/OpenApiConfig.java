@@ -53,7 +53,7 @@ public class OpenApiConfig {
     OpenApiCustomizer responseFieldsRequired() {
         return openApi -> openApi.getComponents().getSchemas().forEach((name, schema) -> {
             boolean response = name.endsWith("Response") && !name.equals("StoreSettingsRequest") || name.equals("PageMetadata") || name.equals("WebhookResult")
-                    || name.equals("SimulationResult") || name.startsWith("PagedModel");
+                    || name.equals("SimulationResult") || name.equals("UploadSignature") || name.startsWith("PagedModel");
             if (!response || schema.getProperties() == null) {
                 return;
             }

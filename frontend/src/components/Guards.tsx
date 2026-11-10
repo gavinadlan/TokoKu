@@ -2,13 +2,12 @@ import { Navigate, Outlet, useLocation } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
 import { decideAccess } from '../auth/guard';
 import { ListSkeleton } from './States';
-import { NotFoundView } from '../pages/NotFound';
 
-/** Rute yang butuh login (dan opsional role). Anonim diarahkan ke /masuk lalu dikembalikan ke halaman asal. */
-export function RequireAuth({ role }: { role?: 'ADMIN' }) {
+/** Rute toko yang butuh login pembeli. Anonim diarahkan ke /masuk lalu dikembalikan ke halaman asal. */
+export function RequireAuth() {
   const { status, user } = useAuth();
   const location = useLocation();
-  const decision = decideAccess(status, user, role);
+  const decision = decideAccess(status, user);
 
   if (decision === 'wait') {
     return (
@@ -17,11 +16,8 @@ export function RequireAuth({ role }: { role?: 'ADMIN' }) {
       </div>
     );
   }
-  if (decision === 'login') {
+  if (decision !== 'allow') {
     return <Navigate to="/masuk" replace state={{ from: location.pathname + location.search, notice: 'Masuk dulu untuk melanjutkan.' }} />;
-  }
-  if (decision === 'forbidden') {
-    return <NotFoundView title="Halaman ini khusus admin" message="Akun Anda tidak punya akses ke bagian ini." />;
   }
   return <Outlet />;
 }

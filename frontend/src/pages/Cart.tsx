@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router';
 import { useCart, useRemoveCartItem, useUpdateCartItem } from '../api/queries';
 import { ProductVisual } from '../components/ProductVisual';
+import { QuantityStepper } from '../components/QuantityStepper';
 import { Receipt } from '../components/Receipt';
 import { EmptyState, ErrorState, ListSkeleton } from '../components/States';
 import { clampQuantity } from '../lib/cart';
@@ -67,20 +68,12 @@ export function CartPage() {
                         </span>
                       )}
                       <div className="controls">
-                        <div className="stepper" role="group" aria-label={`Jumlah ${item.productName}`}>
-                          <button type="button" aria-label="Kurangi jumlah" disabled={item.quantity <= 1} onClick={() => update.mutate({ itemId: item.id, quantity: item.quantity - 1 })}>
-                            <span aria-hidden="true">&minus;</span>
-                          </button>
-                          <output className="tnum">{item.quantity}</output>
-                          <button
-                            type="button"
-                            aria-label="Tambah jumlah"
-                            disabled={item.quantity >= item.availableStock}
-                            onClick={() => update.mutate({ itemId: item.id, quantity: clampQuantity(item.quantity + 1, item.availableStock) })}
-                          >
-                            <span aria-hidden="true">+</span>
-                          </button>
-                        </div>
+                        <QuantityStepper
+                          value={item.quantity}
+                          max={item.availableStock}
+                          label={`Jumlah ${item.productName}`}
+                          onChange={(q) => update.mutate({ itemId: item.id, quantity: clampQuantity(q, item.availableStock) })}
+                        />
                         <button type="button" className="link-btn" onClick={() => remove.mutate({ itemId: item.id })} aria-label={`Hapus ${item.productName} dari keranjang`}>
                           Hapus
                         </button>

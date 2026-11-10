@@ -6,6 +6,7 @@ import { Field } from '../../components/Field';
 import { EmptyState, ErrorState, ListSkeleton } from '../../components/States';
 import { messageOf } from '../../lib/errors';
 import { useDocumentTitle } from '../../lib/useDocumentTitle';
+import { AdminPage } from './AdminShell';
 
 function Row({ category, onDelete }: { category: Category; onDelete(): void }) {
   const save = useSaveCategory();
@@ -50,7 +51,7 @@ function Row({ category, onDelete }: { category: Category; onDelete(): void }) {
 }
 
 export function AdminCategoriesPage() {
-  useDocumentTitle('Kelola kategori');
+  useDocumentTitle('Kategori | TokoKu Admin');
   const categories = useCategories();
   const create = useSaveCategory();
   const del = useDeleteCategory();
@@ -58,8 +59,7 @@ export function AdminCategoriesPage() {
   const [toDelete, setToDelete] = useState<Category | null>(null);
 
   return (
-    <>
-      <h1>Kategori</h1>
+    <AdminPage title="Kategori" sub="Kelompok produk di katalog">
       <form
         className="inline-form"
         onSubmit={async (e) => {
@@ -87,8 +87,8 @@ export function AdminCategoriesPage() {
       ) : categories.data.length === 0 ? (
         <EmptyState title="Belum ada kategori">Tambahkan kategori pertama di atas.</EmptyState>
       ) : (
-        <div className="table-wrap">
-          <table className="data" style={{ minWidth: 0 }}>
+        <div className="tablebox">
+          <table className="tbl" style={{ minWidth: 0 }}>
             <thead><tr><th>Nama</th><th><span className="sr-only">Aksi</span></th></tr></thead>
             <tbody>
               {categories.data.map((c) => (
@@ -110,6 +110,6 @@ export function AdminCategoriesPage() {
       >
         {toDelete?.name} akan dihapus. Kategori yang masih punya produk tidak bisa dihapus.
       </ConfirmDialog>
-    </>
+    </AdminPage>
   );
 }

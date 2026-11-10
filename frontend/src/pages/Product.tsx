@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useAddToCart, useCart, useProduct } from '../api/queries';
 import { useAuth } from '../auth/AuthContext';
+import { Gallery } from '../components/Gallery';
 import { ProductVisual } from '../components/ProductVisual';
+import { QuantityStepper } from '../components/QuantityStepper';
 import { ErrorState } from '../components/States';
 import { useToast } from '../components/Toast';
 import { ApiError, messageOf } from '../lib/errors';
@@ -75,7 +77,7 @@ export function ProductPage() {
         <Link to="/">Katalog</Link> / <Link to={`/?kategori=${p.categoryId}`}>{p.categoryName}</Link> / <span aria-current="page">{p.name}</span>
       </nav>
       <div className="detail">
-        <ProductVisual id={p.id} categoryId={p.categoryId} name={p.name} imageUrl={p.imageUrl} size="big" />
+        {p.images.length > 0 ? <Gallery images={p.images} name={p.name} /> : <ProductVisual id={p.id} categoryId={p.categoryId} name={p.name} size="big" />}
         <section className="panel" aria-labelledby="judul">
           <span className="cat">{p.categoryName}</span>
           <h1 id="judul" className="page-title">
@@ -89,18 +91,8 @@ export function ProductPage() {
           <div className="buy">
             {!buyDisabled && (
               <div className="qty-row">
-                <span id="qty-label">Jumlah</span>
-                <div className="stepper" role="group" aria-labelledby="qty-label">
-                  <button type="button" aria-label="Kurangi jumlah" disabled={quantity <= 1} onClick={() => setQty(quantity - 1)}>
-                    <span aria-hidden="true">&minus;</span>
-                  </button>
-                  <output className="tnum" aria-live="polite">
-                    {quantity}
-                  </output>
-                  <button type="button" aria-label="Tambah jumlah" disabled={quantity >= maxAddable} onClick={() => setQty(quantity + 1)}>
-                    <span aria-hidden="true">+</span>
-                  </button>
-                </div>
+                <span>Jumlah</span>
+                <QuantityStepper value={quantity} max={maxAddable} onChange={setQty} label="Jumlah" />
               </div>
             )}
             {inCart > 0 && !out && <p className="muted tiny-note">Sudah {inCart} di keranjang Anda.</p>}

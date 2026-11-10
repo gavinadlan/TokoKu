@@ -2,22 +2,17 @@ import { useSearchParams } from 'react-router';
 import { useCategories, useProducts } from '../api/queries';
 import { ErrorState, EmptyState, ProductGridSkeleton } from '../components/States';
 import { Pager } from '../components/Pager';
+import { Select } from '../components/Select';
 import { ProductCard } from '../components/ProductCard';
 import { parseCatalogParams, SORT_OPTIONS, toSearchParams, type CatalogParams, type SortKey } from '../lib/catalog';
 import { useDocumentTitle } from '../lib/useDocumentTitle';
 
 function SortSelect({ id, value, onChange }: { id: string; value: SortKey; onChange(v: SortKey): void }) {
   return (
-    <label className="sort" htmlFor={id}>
-      Urutkan
-      <select id={id} value={value} onChange={(e) => onChange(e.target.value as SortKey)}>
-        {SORT_OPTIONS.map((o) => (
-          <option key={o.key} value={o.key}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </label>
+    <div className="sort">
+      <label htmlFor={id}>Urutkan</label>
+      <Select id={id} value={value} onChange={(v) => onChange(v as SortKey)} options={SORT_OPTIONS.map((o) => ({ value: o.key, label: o.label }))} />
+    </div>
   );
 }
 
