@@ -29,4 +29,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     @Query("update Payment p set p.status = com.tokoku.payment.PaymentStatus.EXPIRED "
             + "where p.orderId = :orderId and p.status = com.tokoku.payment.PaymentStatus.PENDING")
     int closePending(@Param("orderId") Long orderId);
+
+    /** Rekonsiliasi berkala: payment PENDING dalam rentang waktu, terlama dulu (memakai idx_payments_pending_created). */
+    List<Payment> findByStatusAndCreatedAtBetweenOrderByCreatedAtAsc(PaymentStatus status, java.time.Instant from, java.time.Instant to,
+            org.springframework.data.domain.Pageable page);
 }

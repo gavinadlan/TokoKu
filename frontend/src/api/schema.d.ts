@@ -147,6 +147,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/orders/{id}/payment/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Periksa status pembayaran ke provider (tanpa menunggu webhook); pemilik order saja, dibatasi per pengguna */
+        post: operations["refresh"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/orders/{id}/pay": {
         parameters: {
             query?: never;
@@ -260,7 +277,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Tukar refresh token dengan access token baru; refresh token lama dicabut (rotasi) */
-        post: operations["refresh"];
+        post: operations["refresh_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -362,7 +379,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Tukar refresh token admin (rotasi); token toko ditolak */
-        post: operations["refresh_1"];
+        post: operations["refresh_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1334,6 +1351,28 @@ export interface operations {
             };
         };
     };
+    refresh: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrderResponse"];
+                };
+            };
+        };
+    };
     pay: {
         parameters: {
             query?: never;
@@ -1494,7 +1533,7 @@ export interface operations {
             };
         };
     };
-    refresh: {
+    refresh_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -1632,7 +1671,7 @@ export interface operations {
             };
         };
     };
-    refresh_1: {
+    refresh_2: {
         parameters: {
             query?: never;
             header?: never;

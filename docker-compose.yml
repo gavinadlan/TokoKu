@@ -41,6 +41,7 @@ services:
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      MIDTRANS_CORE_API_URL: ${MIDTRANS_CORE_API_URL:-https://api.sandbox.midtrans.com/v2}
       MIDTRANS_API_URL: ${MIDTRANS_API_URL:-https://app.sandbox.midtrans.com/snap/v1/transactions}
     ports:
       - "8080:8080"

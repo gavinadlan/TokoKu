@@ -54,6 +54,12 @@ app:
       server-key: ${MIDTRANS_SERVER_KEY:}
       client-key: ${MIDTRANS_CLIENT_KEY:}
       snap-url: ${MIDTRANS_API_URL:https://app.sandbox.midtrans.com/snap/v1/transactions}
+      api-url: ${MIDTRANS_CORE_API_URL:https://api.sandbox.midtrans.com/v2}   # Status API: {api-url}/{order_id}/status
+    reconcile:
+      interval-ms: ${APP_PAYMENT_RECONCILE_MS:300000}   # jaring pengaman tanpa webhook: tiap 5 menit
+      initial-delay-ms: 60000
+      batch-size: 20                                    # maks panggilan Status API per putaran
+    refresh-per-minute: 20                              # batas POST /api/orders/{id}/payment/refresh per pengguna
   order:
     expiry-minutes: ${APP_ORDER_EXPIRY_MINUTES:60}
     expiry-check-ms: 300000        # scheduler tiap 5 menit

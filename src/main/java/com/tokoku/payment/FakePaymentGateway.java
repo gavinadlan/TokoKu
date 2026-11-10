@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 public class FakePaymentGateway implements PaymentGateway {
 
     private final String key;
+    private final java.util.Map<String, Notification> statuses = new java.util.concurrent.ConcurrentHashMap<>();
 
     public FakePaymentGateway(Environment env) {
         if (env.acceptsProfiles(Profiles.of("prod"))) {
@@ -28,6 +29,18 @@ public class FakePaymentGateway implements PaymentGateway {
     @Override
     public PaymentSession createPayment(PaymentRequest request) {
         return new PaymentSession("fake-" + request.providerRef(), "https://fake-payment.invalid/pay/" + request.providerRef());
+    }
+
+    /** Status "di sisi provider" untuk rekonsiliasi; kosong sampai test/dev mengaturnya (= Midtrans 404). */
+    @Override
+    public java.util.Optional<Notification> fetchStatus(String providerRef) {
+        return java.util.Optional.ofNullable(statuses.get(providerRef));
+    }
+
+    /** Test/dev: atur status yang akan dilaporkan fetchStatus, seolah pembeli membayar di halaman provider. */
+    public void setProviderStatus(String providerRef, String grossAmount, String transactionStatus, String fraudStatus) {
+        statuses.put(providerRef, new Notification(providerRef, "200", grossAmount, null, transactionStatus, fraudStatus,
+                "fake-tx-" + providerRef, "fake"));
     }
 
     @Override

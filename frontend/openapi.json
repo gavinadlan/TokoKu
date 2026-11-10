@@ -609,6 +609,38 @@
                 }
             }
         },
+        "/api/orders/{id}/payment/refresh": {
+            "post": {
+                "tags": [
+                    "Pembayaran"
+                ],
+                "summary": "Periksa status pembayaran ke provider (tanpa menunggu webhook); pemilik order saja, dibatasi per pengguna",
+                "operationId": "refresh",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OrderResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/orders/{id}/pay": {
             "post": {
                 "tags": [
@@ -836,7 +868,7 @@
                     "Auth"
                 ],
                 "summary": "Tukar refresh token dengan access token baru; refresh token lama dicabut (rotasi)",
-                "operationId": "refresh",
+                "operationId": "refresh_1",
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -1012,7 +1044,7 @@
                     "Admin"
                 ],
                 "summary": "Tukar refresh token admin (rotasi); token toko ditolak",
-                "operationId": "refresh_1",
+                "operationId": "refresh_2",
                 "requestBody": {
                     "content": {
                         "application/json": {

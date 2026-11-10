@@ -135,6 +135,18 @@ export function usePay() {
   return useMutation({ mutationFn: (orderId: number) => call(() => api.POST('/api/orders/{id}/pay', { params: { path: { id: orderId } } })) });
 }
 
+/** Tanya status ke provider (tanpa menunggu webhook) lalu simpan order terbaru ke cache. */
+export function useRefreshPayment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (orderId: number) => call(() => api.POST('/api/orders/{id}/payment/refresh', { params: { path: { id: orderId } } })),
+    onSuccess: (order) => {
+      qc.setQueryData(['order', order.id], order);
+      if (order.status !== 'PENDING_PAYMENT') qc.invalidateQueries({ queryKey: ['orders'] });
+    },
+  });
+}
+
 export function useCancelOrder() {
   const qc = useQueryClient();
   return useMutation({

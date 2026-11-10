@@ -114,6 +114,20 @@ class OrderEmailIntegrationTest extends ApiTestBase {
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(logStatus(id, "CANCELLED")).isEqualTo("SENT"));
     }
 
+    @Test
+    void refreshAndWebhookTogetherSendPaidEmailOnce() throws Exception {
+        Buyer b = buyer();
+        long id = order(b);
+        String body = send(post("/api/orders/" + id + "/pay"), b.token(), null).andReturn().getResponse().getContentAsString();
+        String ref = JsonPath.read(body, "$.providerRef");
+        gateway.setProviderStatus(ref, String.valueOf(JsonPath.<Object>read(body, "$.amount")), "settlement", null);
+        send(post("/api/orders/" + id + "/payment/refresh"), b.token(), null).andExpect(status().isOk());
+        send(post("/api/dev/payments/" + ref + "/simulate").param("status", "settlement"), null, null).andExpect(status().isOk());
+        send(post("/api/orders/" + id + "/payment/refresh"), b.token(), null).andExpect(status().isOk());
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(logStatus(id, "PAID")).isEqualTo("SENT"));
+        verify(sender, after(500).times(1)).send(org.mockito.ArgumentMatchers.argThat(m -> m.subject().contains("Pembayaran") && m.subject().contains(String.format("%04d", id))));
+    }
+
     private void configureStore(boolean configured) {
         jdbc.update("update store_settings set name = ?, address = ?, phone = ?", configured ? "TokoKu" : "", configured ? "Jl. Contoh No. 1" : "", configured ? "0800-0000" : "");
     }

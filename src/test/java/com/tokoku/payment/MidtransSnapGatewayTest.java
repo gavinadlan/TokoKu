@@ -54,7 +54,8 @@ class MidtransSnapGatewayTest {
     private MidtransSnapGateway gateway() {
         return new MidtransSnapGateway(SERVER_KEY, "SB-Mid-client-EXAMPLE",
                 "http://127.0.0.1:" + server.getAddress().getPort() + "/snap/v1/transactions",
-                "https://tokoku.example.com/", new org.springframework.mock.env.MockEnvironment());
+                "https://tokoku.example.com/", "http://127.0.0.1:" + server.getAddress().getPort() + "/v2",
+                new org.springframework.mock.env.MockEnvironment());
     }
 
     private PaymentRequest request(String amount, String itemPrice) {
@@ -90,10 +91,45 @@ class MidtransSnapGatewayTest {
         var prod = new org.springframework.mock.env.MockEnvironment().withProperty("spring.profiles.active", "prod");
         prod.setActiveProfiles("prod");
         for (String url : new String[] { "", "http://localhost:5173", "http://127.0.0.1:3000" }) {
-            assertThatThrownBy(() -> new MidtransSnapGateway("k", "c", "http://x", url, prod))
+            assertThatThrownBy(() -> new MidtransSnapGateway("k", "c", "http://x", url, "http://x", prod))
                     .isInstanceOf(IllegalStateException.class).hasMessageContaining("APP_FRONTEND_BASE_URL");
         }
-        new MidtransSnapGateway("k", "c", "http://x", "https://tokoku.example.com", prod);
+        new MidtransSnapGateway("k", "c", "http://x", "https://tokoku.example.com", "http://x", prod);
+    }
+
+    @Test
+    void statusApiCallsDocumentedPathWithBasicAuthAndMapsFields() {
+        responseJson = "{\"status_code\":\"200\",\"transaction_status\":\"settlement\",\"fraud_status\":\"accept\","
+                + "\"order_id\":\"TKU-7-abcd1234\",\"gross_amount\":\"90000.00\",\"payment_type\":\"qris\",\"transaction_id\":\"tx-1\","
+                + "\"signature_key\":\"sig\"}";
+        status = 200;
+        var n = gateway().fetchStatus("TKU-7-abcd1234").orElseThrow();
+        assertThat(path.get()).isEqualTo("/v2/TKU-7-abcd1234/status");
+        assertThat(auth.get()).isEqualTo("Basic " + Base64.getEncoder().encodeToString((SERVER_KEY + ":").getBytes(StandardCharsets.UTF_8)));
+        assertThat(n.orderId()).isEqualTo("TKU-7-abcd1234");
+        assertThat(n.transactionStatus()).isEqualTo("settlement");
+        assertThat(n.grossAmount()).isEqualTo("90000.00");
+        assertThat(n.paymentType()).isEqualTo("qris");
+        assertThat(n.fraudStatus()).isEqualTo("accept");
+    }
+
+    @Test
+    void statusApiNotFoundInBodyOrHttpIsEmpty() {
+        responseJson = "{\"status_code\":\"404\",\"status_message\":\"Transaction doesn't exist.\",\"id\":\"x\"}";
+        status = 200;
+        assertThat(gateway().fetchStatus("TKU-7-abcd1234")).isEmpty();
+        status = 404;
+        assertThat(gateway().fetchStatus("TKU-7-abcd1234")).isEmpty();
+    }
+
+    @Test
+    void statusApiRejectsResponseForAnotherOrderAndServerErrors() {
+        responseJson = "{\"status_code\":\"200\",\"transaction_status\":\"settlement\",\"order_id\":\"TKU-9-ffff0000\",\"gross_amount\":\"1.00\"}";
+        status = 200;
+        assertThatThrownBy(() -> gateway().fetchStatus("TKU-7-abcd1234")).isInstanceOf(PaymentGatewayException.class);
+        status = 500;
+        assertThatThrownBy(() -> gateway().fetchStatus("TKU-7-abcd1234")).isInstanceOf(PaymentGatewayException.class)
+                .hasMessageNotContaining(SERVER_KEY);
     }
 
     @Test
@@ -128,7 +164,7 @@ class MidtransSnapGatewayTest {
 
     @Test
     void blankKeysFailFastWithClearMessage() {
-        assertThatThrownBy(() -> new MidtransSnapGateway("", "", "http://x", "http://localhost:5173", new org.springframework.mock.env.MockEnvironment()))
+        assertThatThrownBy(() -> new MidtransSnapGateway("", "", "http://x", "http://localhost:5173", "http://x", new org.springframework.mock.env.MockEnvironment()))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("MIDTRANS_SERVER_KEY");
     }
 

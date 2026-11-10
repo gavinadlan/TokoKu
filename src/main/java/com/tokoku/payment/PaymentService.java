@@ -80,25 +80,40 @@ public class PaymentService {
         return toResponse(payment);
     }
 
-    /**
-     * Memproses notifikasi dari provider. Urutan penjagaan: signature, kenal payment, nominal, idempotensi.
-     * Semua perubahan (payment, order, stok) dalam satu transaksi.
-     */
+    /** Webhook: signature dulu, lalu jalur transisi yang sama dengan rekonsiliasi. */
     @Transactional
     public void handleNotification(Notification n) {
         if (n.orderId() == null || n.signatureKey() == null || !gateway.verifySignature(n)) {
             throw new InvalidSignatureException("Invalid signature");
         }
+        applyStatus(n, null);
+    }
+
+    /**
+     * SATU jalur transisi untuk webhook dan rekonsiliasi (Status API). Urutan penjagaan: payment dikenal, milik order
+     * yang diharapkan (bila diberikan), nominal cocok, idempotensi (payment sudah tidak PENDING = tidak berubah apa pun).
+     * Semua perubahan (payment, order, stok) dalam satu transaksi.
+     *
+     * @param expectedOrderId null untuk webhook; untuk rekonsiliasi = order yang ditanyakan, payment order lain ditolak
+     */
+    @Transactional
+    public void applyStatus(Notification n, Long expectedOrderId) {
+        if (n.orderId() == null) {
+            throw new IllegalArgumentException("Missing order_id");
+        }
         // Urutan kunci SELALU order lalu payment (sama seperti pay/cancel/expire) agar tidak terjadi deadlock
         Payment known = payments.findByProviderRef(n.orderId())
                 .orElseThrow(() -> new NotFoundException("Unknown payment reference"));
+        if (expectedOrderId != null && !expectedOrderId.equals(known.getOrderId())) {
+            throw new NotFoundException("Unknown payment reference");
+        }
         Order order = orders.findByIdForUpdate(known.getOrderId()).orElseThrow();
         Payment payment = payments.findByProviderRefForUpdate(n.orderId()).orElseThrow();
         if (n.grossAmount() == null || payment.getAmount().compareTo(parseAmount(n.grossAmount())) != 0) {
             throw new IllegalArgumentException("Amount does not match the order total");
         }
         if (!payment.isPending()) {
-            return; // webhook ulang/terlambat: tidak mengubah apa pun
+            return; // webhook ulang/terlambat, atau webhook dan rekonsiliasi datang bersamaan: tidak mengubah apa pun
         }
         String status = n.transactionStatus() == null ? "" : n.transactionStatus();
         boolean success = status.equals("settlement")
@@ -110,7 +125,7 @@ public class PaymentService {
         } else if (status.equals("deny") || status.equals("cancel") || status.equals("failure")) {
             onFailure(payment, order, PaymentStatus.FAILED);
         }
-        // pending / authorize / refund, dll: abaikan, tidak ada perubahan
+        // pending / authorize / capture+challenge / refund, dll: abaikan, tidak ada perubahan
     }
 
     private void onSuccess(Payment payment, Order order, String paymentType) {

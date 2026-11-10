@@ -37,6 +37,7 @@ public class MidtransSnapGateway implements PaymentGateway {
     private final String clientKey;
     private final String snapUrl;
     private final String finishUrl;
+    private final String apiUrl;
     static final String FINISH_PATH = "/pembayaran/selesai"; // rute frontend; Midtrans menambahkan ?order_id=...&status_code=...&transaction_status=...
     private final RestClient http;
 
@@ -45,6 +46,7 @@ public class MidtransSnapGateway implements PaymentGateway {
             @Value("${app.payment.midtrans.client-key:}") String clientKey,
             @Value("${app.payment.midtrans.snap-url}") String snapUrl,
             @Value("${app.frontend.base-url:}") String frontendBaseUrl,
+            @Value("${app.payment.midtrans.api-url:https://api.sandbox.midtrans.com/v2}") String apiUrl,
             org.springframework.core.env.Environment env) {
         String base = frontendBaseUrl.strip().replaceAll("/+$", "");
         boolean local = base.isEmpty() || base.matches("(?i)https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?");
@@ -53,6 +55,7 @@ public class MidtransSnapGateway implements PaymentGateway {
                     "APP_FRONTEND_BASE_URL must be set to the public frontend URL (not empty or localhost) in the prod profile");
         }
         this.finishUrl = base + FINISH_PATH;
+        this.apiUrl = apiUrl.strip().replaceAll("/+$", "");
         if (serverKey.isBlank() || clientKey.isBlank()) {
             throw new IllegalStateException(
                     "app.payment.provider=midtrans requires MIDTRANS_SERVER_KEY and MIDTRANS_CLIENT_KEY "
@@ -77,8 +80,7 @@ public class MidtransSnapGateway implements PaymentGateway {
         log.info("Snap request order_id={} callbacks.finish={}", r.providerRef(), finishUrl);
         try {
             Map<?, ?> response = http.post().uri(snapUrl)
-                    .header(HttpHeaders.AUTHORIZATION, "Basic " + Base64.getEncoder()
-                            .encodeToString((serverKey + ":").getBytes(StandardCharsets.UTF_8)))
+                    .header(HttpHeaders.AUTHORIZATION, basicAuth())
                     .contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
                     .body(body).retrieve().body(Map.class);
             if (response == null || response.get("token") == null || response.get("redirect_url") == null) {
@@ -117,6 +119,42 @@ public class MidtransSnapGateway implements PaymentGateway {
         body.put("expiry", Map.of("unit", "minutes", "duration", r.expiryMinutes()));
         return body;
     }
+
+    /**
+     * Get Transaction Status (docs.midtrans.com/reference/get-transaction-status): GET {api}/v2/{order_id}/status,
+     * Basic auth server key. Transaksi yang belum ada dijawab status_code "404" (di badan respons; HTTP 404 juga
+     * ditangani). Yang di-log hanya order_id, status_code, dan transaction_status; tidak pernah respons mentah atau kunci.
+     */
+    @Override
+    public java.util.Optional<Notification> fetchStatus(String providerRef) {
+        Map<?, ?> r;
+        try {
+            r = http.get().uri(apiUrl + "/{ref}/status", providerRef)
+                    .header(HttpHeaders.AUTHORIZATION, basicAuth())
+                    .accept(MediaType.APPLICATION_JSON).retrieve().body(Map.class);
+        } catch (RestClientResponseException e) {
+            if (e.getStatusCode().value() == 404) return java.util.Optional.empty();
+            throw new PaymentGatewayException("Midtrans status check failed: HTTP " + e.getStatusCode().value(), e);
+        } catch (RuntimeException e) {
+            throw new PaymentGatewayException("Could not reach Midtrans", e);
+        }
+        if (r == null) throw new PaymentGatewayException("Midtrans status response was empty");
+        String code = str(r.get("status_code"));
+        log.info("Midtrans status order_id={} status_code={} transaction_status={}", providerRef, code, str(r.get("transaction_status")));
+        if ("404".equals(code)) return java.util.Optional.empty();
+        String orderId = str(r.get("order_id"));
+        if (!providerRef.equals(orderId)) {
+            throw new PaymentGatewayException("Midtrans status response is for a different order_id");
+        }
+        return java.util.Optional.of(new Notification(orderId, code, str(r.get("gross_amount")), str(r.get("signature_key")),
+                str(r.get("transaction_status")), str(r.get("fraud_status")), str(r.get("transaction_id")), str(r.get("payment_type"))));
+    }
+
+    private String basicAuth() {
+        return "Basic " + Base64.getEncoder().encodeToString((serverKey + ":").getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static String str(Object o) { return o == null ? null : String.valueOf(o); }
 
     @Override
     public boolean verifySignature(Notification n) {

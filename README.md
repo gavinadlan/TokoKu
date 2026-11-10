@@ -62,6 +62,8 @@ docker compose up --build
 | `PORT` | - | otomatis (Render) | Default 8080 |
 | `JWT_SECRET` | opsional | **wajib**, min 32 byte | Kosong di dev = kunci acak sementara (token hangus saat restart). Buat: `openssl rand -base64 48` |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | opsional | opsional | Admin awal, idempoten |
+| `MIDTRANS_CORE_API_URL` | opsional | `https://api.sandbox.midtrans.com/v2` | Status API; produksi `https://api.midtrans.com/v2` |
+| `APP_PAYMENT_RECONCILE_MS` | opsional | `300000` | Jeda rekonsiliasi berkala |
 | `APP_FRONTEND_BASE_URL` | wajib di prod | `http://localhost:5173` | URL publik frontend; dikirim sebagai `callbacks.finish` ke Midtrans (`{URL}/pembayaran/selesai`). Prod gagal start bila kosong/localhost |
 | `APP_MAIL_ENABLED` | opsional | `true` | `false` = email dimatikan (no-op) |
 | `MAIL_HOST`, `MAIL_PORT` | opsional | `smtp.gmail.com`, `587` | STARTTLS wajib |
@@ -124,6 +126,8 @@ Provider `fake` (dev/test): `POST /api/dev/payments/{providerRef}/simulate?statu
 Atur Notification URL di dashboard Midtrans **sandbox** (Settings → Configuration → Payment Notification URL):
 - Lokal: Midtrans tidak bisa memanggil `localhost`. Buka tunnel publik (mis. `cloudflared tunnel --url http://localhost:8080` atau `ngrok http 8080`), lalu isi `https://<tunnel>/api/payments/webhook`.
 - Deploy: `https://<service>.onrender.com/api/payments/webhook`.
+
+**Tanpa webhook pun status ikut berubah:** halaman `/pembayaran/selesai` dan tombol "Periksa status" memanggil `POST /api/orders/{id}/payment/refresh`, yang menanyakan Midtrans Status API (`MIDTRANS_CORE_API_URL`, default `https://api.sandbox.midtrans.com/v2`) lalu menerapkan hasilnya lewat jalur yang sama dengan webhook. Scheduler juga merekonsiliasi payment PENDING berumur 2 menit sampai 24 jam (maks 20 per putaran, tiap 5 menit, `APP_PAYMENT_RECONCILE_MS`).
 
 Tanpa tunnel, uji webhook dengan notifikasi buatan: `scripts/simulate-midtrans-webhook.sh <providerRef> <gross_amount> [status]` (ditandatangani dengan `MIDTRANS_SERVER_KEY` dari `.env`).
 
@@ -196,7 +200,7 @@ Detail: bagian "Infrastruktur & Deployment Gratis" di [docs/PRD.md](docs/PRD.md)
 - [ ] Repo di GitHub, `.env` tidak ikut commit. CI (`.github/workflows/ci.yml`) **belum pernah berjalan di GitHub**; periksa hasilnya pada push pertama.
 - [ ] Neon: buat project, ubah connection string ke `jdbc:postgresql://HOST/DB?sslmode=require`, simpan user dan password terpisah.
 - [ ] Render: New Web Service, runtime Docker, instance Free, health check path `/actuator/health`.
-- [ ] Env di Render: `SPRING_PROFILES_ACTIVE=prod`, `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `APP_CORS_ALLOWED_ORIGINS`, `APP_FRONTEND_BASE_URL`, `APP_MAIL_ENABLED`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM`, `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, `MIDTRANS_API_URL`.
+- [ ] Env di Render: `SPRING_PROFILES_ACTIVE=prod`, `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `APP_CORS_ALLOWED_ORIGINS`, `APP_FRONTEND_BASE_URL`, `APP_MAIL_ENABLED`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM`, `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, `MIDTRANS_API_URL`, `MIDTRANS_CORE_API_URL`.
 - [ ] Dashboard Midtrans: Notification URL `https://<service>.onrender.com/api/payments/webhook`.
 - [ ] Buka `/swagger-ui.html`; request pertama setelah idle sekitar satu menit.
 - [ ] Ganti password admin awal; jangan pakai kunci sandbox untuk uang sungguhan.
