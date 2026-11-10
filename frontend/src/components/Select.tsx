@@ -43,7 +43,9 @@ export function Select({ id, value, onChange, options, ariaLabel, disabled, plac
     <RadixSelect.Root value={value === '' ? undefined : value} onValueChange={onChange} disabled={disabled}>
       <RadixSelect.Trigger id={id} className={`sel-trigger ${className}`} aria-label={ariaLabel} aria-invalid={invalid || undefined}>
         <RadixSelect.Value placeholder={placeholder ?? 'Pilih'} />
-        <RadixSelect.Icon className="sel-chev" aria-hidden="true" />
+        <RadixSelect.Icon asChild>
+          <span className="sel-chev" aria-hidden="true" />
+        </RadixSelect.Icon>
       </RadixSelect.Trigger>
       <RadixSelect.Portal>
         <RadixSelect.Content className="pop sel-content" position="popper" sideOffset={4} collisionPadding={8}>
@@ -51,7 +53,9 @@ export function Select({ id, value, onChange, options, ariaLabel, disabled, plac
             {options.map((o) => (
               <RadixSelect.Item key={o.value} value={o.value} className="pop-item">
                 <RadixSelect.ItemText>{o.label}</RadixSelect.ItemText>
-                <RadixSelect.ItemIndicator className="sel-check" aria-hidden="true" />
+                <RadixSelect.ItemIndicator asChild>
+                  <span className="sel-check" aria-hidden="true" />
+                </RadixSelect.ItemIndicator>
               </RadixSelect.Item>
             ))}
           </RadixSelect.Viewport>

@@ -10,7 +10,7 @@ import { EmptyState, ErrorState, ListSkeleton } from '../../components/States';
 import { StatusLabel } from '../../components/StatusLabel';
 import { useToast } from '../../components/Toast';
 import { messageOf } from '../../lib/errors';
-import { formatDateTime, formatRupiah } from '../../lib/format';
+import { formatDateTimeShort, formatRupiah } from '../../lib/format';
 import { adminNextAction, FULFILLMENT_LABEL, ORDER_STATUSES, STATUS_LABEL, type AdminAction, type Fulfillment, type OrderStatus } from '../../lib/status';
 import { useDocumentTitle } from '../../lib/useDocumentTitle';
 import { AdminPage } from './AdminShell';
@@ -84,7 +84,7 @@ export function AdminOrdersPage() {
                   return (
                     <tr key={o.id}>
                       <td className="id sticky-col tnum">{String(o.id).padStart(4, '0')}</td>
-                      <td className="tnum muted">{formatDateTime(o.createdAt)}</td>
+                      <td className="tnum muted">{formatDateTimeShort(o.createdAt)}</td>
                       <td>
                         <details>
                           <summary>{o.shippingName}</summary>

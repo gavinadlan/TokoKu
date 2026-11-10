@@ -85,7 +85,7 @@ export function OrderDetailPage() {
       <nav className="crumbs" aria-label="Jejak halaman" style={{ paddingTop: 0 }}>
         <Link to="/order">Riwayat order</Link> / <span aria-current="page">No. {String(o.id).padStart(4, '0')}</span>
       </nav>
-      <div className="row-between" style={{ alignItems: 'end', flexWrap: 'wrap', marginBottom: 'var(--s-6)' }}>
+      <div className="detail-head">
         <h1 className="page-title">Order No. {String(o.id).padStart(4, '0')}</h1>
         <StatusLabel status={status} />
       </div>
@@ -97,7 +97,7 @@ export function OrderDetailPage() {
       )}
       <div className="layout-2">
         <div className="stack">
-          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 440, fontSize: 'var(--text-xl)' }}>Status pesanan</h2>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 440, fontSize: 'var(--text-xl)', marginBottom: 'var(--s-3)' }}>Status pesanan</h2>
           <OrderTimeline order={o} store={store.data} />
           <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 440, fontSize: 'var(--text-xl)', marginTop: 'var(--s-6)' }}>
             {o.fulfillmentType === 'PICKUP' ? 'Pengambil' : 'Pengiriman'}

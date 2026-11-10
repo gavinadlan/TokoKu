@@ -99,3 +99,13 @@
 - **Memori:** invoice 10 item = ±20 KB, ±30-40 ms, kenaikan heap ±10 MB di test; font dibaca dari jar tiap render (±180 KB) dan di-subset. Cocok untuk RAM 512 MB.
 - **Dua rute:** `GET /api/orders/{id}/invoice` (pemilik; milik orang lain 404; realm toko) dan `GET /api/admin/orders/{id}/invoice` (admin). 409 bila order belum dibayar atau pengaturan toko belum lengkap.
 - Tidak ada baris pajak terhitung; hanya `NPWP/NIB` dan catatan pajak bila dikonfigurasi (lihat B2).
+
+## Putaran 2: Frontend (Tahap C)
+- **Dua klien API dan dua sesi** (`api`/`adminApi`, `storeSession`/`adminSession`): satu browser bisa masuk sebagai pembeli dan admin sekaligus (diuji e2e). Refresh admin di `sessionStorage` (sesi hilang saat tab ditutup) karena lebih sensitif; refresh toko tetap `localStorage`. Admin tidak mendapat halaman 403: tanpa sesi admin selalu diarahkan ke `/admin/masuk`.
+- **Radix hanya untuk Select dan DropdownMenu** (headless, diberi gaya dengan token sendiri). Select native dipakai di perangkat sentuh. `<dialog>` bawaan dipertahankan untuk konfirmasi dan formulir (fokus terkurung dan pengembalian fokus sudah bawaan browser); toast tetap komponen sendiri.
+- **Urutan foto lewat tombol Kiri/Kanan**, bukan seret-lepas (disetujui). Unggahan diproses berurutan: dua unggahan paralel sempat membuat data produk basi (respons lama menimpa yang baru) dan berisiko melewati batas 6 foto.
+- **Tabel admin: urut kolom di server** (`sort` pada admin produk dan order); header menempel; aksi baris dalam menu "Aksi" (produk) atau tombol langsung (order, karena tindakan utamanya sering dipakai). Filter pengambilan di daftar order admin tidak ada (backend memfilter status saja); jenis ditampilkan sebagai chip.
+- **Perbaikan kontrak OpenAPI:** `UploadSignature` ditandai required agar tipe klien akurat.
+- **Batas login dev:** `scripts/dev-backend.sh` juga melonggarkan limiter login admin (1000/menit) untuk e2e; default backend tetap 3/menit per email dan 10 per IP.
+- **Kode ambil tidak ditampilkan ke admin**: admin memasukkannya dari pembeli (verifikasi). Pembeli melihatnya setelah status `READY_FOR_PICKUP`.
+- Kritik diri (screenshot `docs/design/screens/round2-before/` vs `docs/design/screens/`): (1) chevron Radix tampil sebagai panah rusak (ikon bawaan Radix), (2) kolom form admin merenggang vertikal (`.field` tanpa `align-content: start`), (3) judul admin kena focus ring saat fokus programatik, (4) linimasa order terlalu rapat dengan format waktu panjang, (5) baris tabel admin terlalu tinggi untuk alat kerja padat (dikurangi untuk pointer halus, area sentuh 44px tetap di ponsel).

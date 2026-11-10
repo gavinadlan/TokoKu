@@ -473,3 +473,18 @@ body:has(.adm) { background: var(--adm-bg); }
 .alogin form { width: min(380px, 100%); display: grid; gap: var(--s-4); }
 .alogin h1 { font-family: var(--font-display); font-weight: 360; font-size: var(--text-3xl); line-height: 1.1; margin-bottom: var(--s-2); font-variation-settings: "opsz" 96; }
 .alogin .note { color: var(--ink-muted); font-size: var(--text-sm); }
+
+/* ---------- penyempurnaan setelah ronde kritik diri ---------- */
+.field { align-content: start; }
+main h1[tabindex="-1"]:focus, #konten:focus { outline: none; } /* fokus programatik setelah pindah halaman: tanpa cincin */
+.detail-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--s-3) var(--s-5); margin-bottom: var(--s-6); }
+.adm .tl, .tl { margin-top: var(--s-2); }
+@media (pointer: fine) {
+  .adm .tbl td { padding-block: 4px; }
+  .adm .row-trigger { min-height: 32px; }
+  .adm .tbl th, .adm .tbl th button { height: 40px; min-height: 40px; }
+  .adm .act-cell .btn.sm { min-height: 36px; }
+  .adm .btn.sm, .adm .ctl, .adm .sel-trigger { min-height: 40px; }
+  .adm .ctl { height: 40px; }
+  .adm .toolrow .sel-trigger { min-height: 40px; }
+}

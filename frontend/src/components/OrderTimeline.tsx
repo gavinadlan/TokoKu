@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Order } from '../api/types';
-import { formatDateTime } from '../lib/format';
+import { formatDateTimeShort } from '../lib/format';
 import { timelineSteps, type Fulfillment, type OrderStatus } from '../lib/status';
 
 /** Linimasa status per jalur (kirim / ambil), dengan resi dan kode ambil di langkah yang relevan. */
@@ -40,7 +40,7 @@ export function OrderTimeline({ order, store }: { order: Order; store?: { name: 
         <li key={s.key} className={s.state} aria-current={s.state === 'now' ? 'step' : undefined}>
           <div className="row1">
             <span className="st">{s.label}</span>
-            {times[s.key] && s.state !== 'todo' && <time dateTime={times[s.key]!}>{formatDateTime(times[s.key]!)}</time>}
+            {times[s.key] && s.state !== 'todo' && <time dateTime={times[s.key]!}>{formatDateTimeShort(times[s.key]!)}</time>}
           </div>
           {s.key === 'PENDING_PAYMENT' && s.state === 'now' && <p className="tl-detail">Menunggu pembayaran.</p>}
           {s.key === 'SHIPPED' && s.state !== 'todo' && order.trackingNumber && (

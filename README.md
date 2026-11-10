@@ -4,8 +4,8 @@ Backend e-commerce Spring Boot (Java 21, Spring Boot 4.1.2, PostgreSQL, Flyway, 
 Proyek belajar bertahap. Dokumen produk dan infrastruktur: [docs/PRD.md](docs/PRD.md).
 Catatan keputusan: [docs/DECISIONS.md](docs/DECISIONS.md). Log kemajuan dan bukti verifikasi: [docs/PROGRESS.md](docs/PROGRESS.md).
 
-Backend lengkap (auth + refresh token, katalog, keranjang, order, pembayaran Midtrans). Frontend belum ada: gunakan Swagger UI.
-Belum ada: cache Redis (opsional di PRD, dilewati), upload gambar (produk hanya menyimpan `imageUrl`), email, login Google.
+Backend lengkap (auth terpisah toko/admin, katalog dengan foto, keranjang, order kirim/ambil, pembayaran Midtrans, invoice PDF). Frontend belum ada: gunakan Swagger UI.
+Belum ada: cache Redis (opsional di PRD, dilewati), email, login Google, ongkir per zona atau API kurir.
 
 ## Frontend
 
@@ -27,13 +27,13 @@ set -a; source .env; set +a
 export DATABASE_PASSWORD="$DB_PASSWORD"
 # Port 5432 bentrok? isi DB_PORT=55432 di .env dan: export DATABASE_URL=jdbc:postgresql://localhost:55432/tokoku
 
-# Dengan data contoh (kopi) dan tanpa akun Midtrans:
+# Dengan data contoh (kopi, identitas toko contoh) dan tanpa akun Midtrans:
 SPRING_PROFILES_ACTIVE=dev APP_PAYMENT_PROVIDER=fake ./mvnw spring-boot:run
 ```
 
 - Swagger UI: http://localhost:8080/swagger-ui.html (klik **Authorize**, tempel token dari `POST /api/auth/login`)
 - Health: http://localhost:8080/actuator/health
-- Admin awal: isi `ADMIN_EMAIL` dan `ADMIN_PASSWORD` di `.env` sebelum start (dibuat sekali jika belum ada admin).
+- Admin awal: isi `ADMIN_EMAIL` dan `ADMIN_PASSWORD` di `.env` sebelum start (dibuat sekali jika belum ada admin). Masuk lewat `/admin/masuk` di frontend atau `POST /api/admin/auth/login`.
 - `SPRING_PROFILES_ACTIVE=dev` mengisi sekitar 30 produk bertema kopi (hanya jika belum ada produk).
 - Dengan kunci Midtrans sandbox di `.env`, buang `APP_PAYMENT_PROVIDER=fake`; `/pay` akan memanggil Midtrans sungguhan.
 
@@ -67,12 +67,33 @@ docker compose up --build
 | `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY` | wajib jika `midtrans` | wajib | App gagal start jika kosong |
 | `MIDTRANS_API_URL` | default Snap sandbox | isi URL Snap produksi bila live | |
 | `MIDTRANS_MERCHANT_ID`, `MIDTRANS_CORE_API_URL`, `MIDTRANS_USE_CORE_API` | - | - | Belum dipakai (kita memakai Snap) |
+| `APP_IMAGES_PROVIDER` | `fake` bila kunci Cloudinary kosong | `cloudinary` | `fake` dilarang di prod |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | opsional | wajib jika `cloudinary` | App gagal start jika kosong |
 | `APP_ORDER_EXPIRY_MINUTES` | 60 | 60 | Kedaluwarsa order belum dibayar |
-| `APP_RATELIMIT_LOGIN_PER_EMAIL`, `APP_RATELIMIT_LOGIN_PER_IP` | 5 / 30 | 5 / 30 | Percobaan login per menit |
+| `APP_RATELIMIT_LOGIN_PER_EMAIL`, `APP_RATELIMIT_LOGIN_PER_IP` | 5 / 30 | 5 / 30 | Percobaan login toko per menit |
+| `APP_RATELIMIT_ADMIN_LOGIN_PER_EMAIL`, `APP_RATELIMIT_ADMIN_LOGIN_PER_IP` | 3 / 10 | 3 / 10 | Percobaan login admin per menit (terpisah dari toko) |
+
+## Login admin dan pembeli terpisah
+
+Dua realm: token pembeli (`store`) hanya untuk endpoint pembeli (`/api/me`, keranjang, order, bayar, invoice), token admin (`admin`, umur 15 menit) hanya untuk `/api/admin/**` dan tulis produk/kategori. Akun admin tidak bisa masuk di `/api/auth/login`, akun pembeli tidak bisa masuk di `/api/admin/auth/login` (keduanya 401 dengan pesan yang sama dengan password salah). Refresh token punya realm yang sama dan tidak bisa dipakai lintas realm. Token lintas realm = 403.
+
+## Pengambilan, ongkir, dan pengaturan toko
+
+Checkout memilih `DELIVERY` (alamat wajib) atau `PICKUP` (cukup nama dan telepon). **Ongkir dihitung server** dari pengaturan toko (tarif flat; gratis bila subtotal mencapai ambang; ambil di toko selalu gratis) dan menjadi baris sendiri di `item_details` Midtrans, jadi `gross_amount` selalu sama dengan jumlah item. Status per jalur: kirim `PAID → PROCESSING → SHIPPED → COMPLETED` (resi wajib), ambil `PAID → PROCESSING → READY_FOR_PICKUP → COMPLETED` (kode ambil 6 karakter dibuat saat dibayar, dicocokkan tanpa peka huruf besar-kecil). **Di produksi** isi dulu Pengaturan toko di admin (nama, alamat, telepon): selama belum lengkap invoice mengembalikan 409 dan ambil di toko tidak tersedia. Data contoh hanya di-seed di profil `dev`.
+
+## Foto produk
+
+Foto disimpan di Cloudinary (paket gratis), diunggah **langsung dari browser** dengan tanda tangan dari server (`POST /api/admin/uploads/sign`), lalu didaftarkan ke produk (server memverifikasi signature dan membangun URL sendiri). Maksimal 6 foto per produk, jpg/png/webp, 5 MB. Respons produk memuat `images[]` dengan tiga ukuran bernama (thumbnail, kartu, detail; `f_auto,q_auto`, rasio 4:5).
+
+**Mengaktifkan Cloudinary:** (1) daftar di cloudinary.com (paket gratis tanpa kartu), (2) salin *cloud name*, *API key*, dan *API secret* dari dashboard, (3) isi `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` di `.env` lokal (dan di environment Render), (4) jalankan ulang backend; tanpa kunci `scripts/dev-backend.sh` memakai penyimpanan `fake` yang menerima unggahan di server dev. Rumus signature *respons* unggah belum terverifikasi dari dokumentasi (lihat `docs/DECISIONS.md`): uji satu unggahan nyata setelah kunci terpasang.
+
+## Invoice
+
+`GET /api/orders/{id}/invoice` (pembeli) dan `GET /api/admin/orders/{id}/invoice` mengembalikan PDF A4 (nomor `INV-YYYYMM-NNNNN` unik dan tidak berubah walau webhook ganda). Dirender backend (openhtmltopdf) dengan font Fraunces dan Hanken Grotesk yang tertanam (lisensi OFL di `src/main/resources/fonts/`). Identitas toko dan catatan kaki dari Pengaturan toko; NPWP/NIB dan catatan pajak hanya dicetak bila diisi (aplikasi tidak menghitung pajak). Contoh: `docs/design/screens/invoice-delivery.png`.
 
 ## Struktur paket
 
-`com.tokoku`: `auth` (user, JWT, login), `product` (produk dan kategori), `cart`, `order` (checkout, status), `payment` (gateway Midtrans/fake, webhook), `common` (security, error handler, OpenAPI, seeder dev).
+`com.tokoku`: `auth` (user, JWT per realm, login), `product` (produk, kategori, foto), `cart`, `order` (checkout, status per jalur, ongkir), `payment` (gateway Midtrans/fake, webhook), `store` (pengaturan toko), `image` (Cloudinary/fake), `invoice` (nomor dan PDF), `common` (security, error handler, OpenAPI, seeder dev).
 
 ## Autentikasi
 
@@ -110,14 +131,19 @@ Lihat tabel lengkap di bagian **Kontrak API** di bawah (diperbarui bersama kode)
 | Method | Path | Akses | Fungsi |
 | --- | --- | --- | --- |
 | POST | `/api/auth/register` | Publik | Daftar akun |
-| POST | `/api/auth/login` | Publik | Login, JWT + refresh token (429 bila terlalu sering) |
+| POST | `/api/auth/login` | Publik | Login **pembeli** (hanya USER), JWT realm `store` + refresh token (429 bila terlalu sering) |
 | POST | `/api/auth/refresh` | Publik | Tukar refresh token (rotasi) |
 | POST | `/api/auth/logout` | Publik | Cabut refresh token |
 | POST | `/api/auth/change-password` | Login | Ganti password |
-| GET | `/api/me` | Login | Profil dan role |
+| GET | `/api/me` | Pembeli | Profil dan role |
+| POST | `/api/admin/auth/login` | Publik | Login **admin** (hanya ADMIN), JWT realm `admin` (15 menit), limiter lebih ketat |
+| POST | `/api/admin/auth/refresh`, `/api/admin/auth/logout` | Publik | Refresh/logout admin (token toko ditolak) |
+| GET | `/api/admin/me` | Admin | Profil admin |
+| GET | `/api/store` | Publik | Info toko (alamat, jam buka, ongkir, metode aktif) |
+| GET, PUT | `/api/admin/store-settings` | Admin | Pengaturan toko (identitas, ongkir, invoice, pajak/NPWP) |
 | GET | `/api/products` | Publik | Daftar produk aktif (`q`, `category`, `page`, `size`, `sort`) |
 | GET | `/api/products/{id}` | Publik | Detail produk aktif |
-| POST | `/api/products` | Admin | Tambah produk (`imageUrl` opsional, URL http/https) |
+| POST | `/api/products` | Admin | Tambah produk (foto lewat endpoint foto) |
 | PUT | `/api/products/{id}` | Admin | Ubah produk |
 | PATCH | `/api/products/{id}/stock` | Admin | Atur stok (`{"stock": n}`) |
 | DELETE | `/api/products/{id}` | Admin | Nonaktifkan produk |
@@ -130,7 +156,9 @@ Lihat tabel lengkap di bagian **Kontrak API** di bawah (diperbarui bersama kode)
 | POST | `/api/cart/items` | Login | Tambah item |
 | PUT | `/api/cart/items/{id}` | Login | Ubah jumlah |
 | DELETE | `/api/cart/items/{id}` | Login | Hapus item |
-| POST | `/api/orders` | Login | Checkout dari keranjang |
+| POST | `/api/orders` | Pembeli | Checkout dari keranjang (`fulfillmentType`: `DELIVERY` atau `PICKUP`; ongkir dihitung server) |
+| GET | `/api/orders/{id}/invoice` | Pembeli | Invoice PDF (hanya order yang sudah dibayar) |
+| GET | `/api/admin/orders/{id}/invoice` | Admin | Invoice PDF order apa pun |
 | GET | `/api/orders` | Login | Riwayat order sendiri |
 | GET | `/api/orders/{id}` | Login | Detail order sendiri |
 | POST | `/api/orders/{id}/cancel` | Login | Batalkan order belum dibayar |
@@ -138,7 +166,14 @@ Lihat tabel lengkap di bagian **Kontrak API** di bawah (diperbarui bersama kode)
 | POST | `/api/payments/webhook` | Publik (signature) | Notifikasi Midtrans |
 | GET | `/api/admin/orders` | Admin | Semua order (`status`, pagination) |
 | GET | `/api/admin/orders/{id}` | Admin | Detail order |
-| PATCH | `/api/admin/orders/{id}/status` | Admin | Ubah status |
+| PATCH | `/api/admin/orders/{id}/status` | Admin | Ubah status sesuai jalur; `SHIPPED` butuh `courier` + `trackingNumber`, menyelesaikan PICKUP butuh `pickupCode` |
+| GET | `/api/admin/products/{id}` | Admin | Detail produk (termasuk nonaktif) dengan foto |
+| POST | `/api/admin/uploads/sign` | Admin | Tanda tangan unggah foto langsung ke Cloudinary |
+| POST | `/api/admin/products/{id}/images` | Admin | Daftarkan foto yang sudah diunggah (signature diverifikasi, maks. 6) |
+| PUT | `/api/admin/products/{id}/images/order` | Admin | Urutkan ulang foto |
+| PATCH | `/api/admin/products/{id}/images/{imageId}/primary` | Admin | Jadikan foto utama |
+| DELETE | `/api/admin/products/{id}/images/{imageId}` | Admin | Hapus foto |
+| POST | `/api/dev/uploads` | Dev (images fake) | Meniru unggahan Cloudinary di dev |
 | POST | `/api/dev/payments/{ref}/simulate` | Dev (provider fake) | Simulasi webhook |
 
 ## Deploy (Render + Neon)

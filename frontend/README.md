@@ -1,6 +1,6 @@
 # TokoKu frontend
 
-Toko online untuk API TokoKu: katalog, keranjang, checkout, pembayaran Midtrans, riwayat order, dan panel admin.
+Toko online untuk API TokoKu: katalog dengan foto, keranjang, checkout (kirim atau ambil di toko), pembayaran Midtrans, linimasa order, invoice PDF, dan panel admin terpisah.
 Vite + React 19 + TypeScript (strict), React Router 8, TanStack Query, React Hook Form + Zod. Arah visual dan token: [`../docs/DESIGN.md`](../docs/DESIGN.md).
 
 ## Menjalankan
@@ -18,7 +18,7 @@ cp .env.example .env              # opsional; default VITE_API_URL=http://localh
 npm run dev                       # http://localhost:5173
 ```
 
-Admin lokal: `scripts/dev-backend.sh` membuat `admin@tokoku.local` dengan password acak yang disimpan di `.dev-admin.env` (di-gitignore).
+Admin lokal: `scripts/dev-backend.sh` membuat `admin@tokoku.local` dengan password acak yang disimpan di `.dev-admin.env` (di-gitignore). Masuk di `http://localhost:5173/admin/masuk`. Tanpa kunci Cloudinary skrip memakai penyimpanan foto `fake` (unggahan diterima server dev).
 
 ## Skrip
 
@@ -46,7 +46,7 @@ src/
   auth/       session (token), AuthContext, keputusan akses rute (guard.ts)
   components/ Header, ProductCard, ProductVisual, Receipt, Field, ConfirmDialog, Toast, state kosong/error/skeleton
   lib/        logika murni yang diuji: format rupiah/tanggal, hitung keranjang, parameter katalog, status order, error
-  pages/      halaman pelanggan; pages/admin/ untuk panel admin
+  pages/      halaman pelanggan; pages/admin/ untuk panel admin (shell, sesi, dan kode terpisah, dimuat malas)
   styles/     tokens.css (design token) dan app.css
 e2e/          Playwright: alur belanja, admin, aksesibilitas (axe), screenshot
 ```
@@ -60,6 +60,11 @@ e2e/          Playwright: alur belanja, admin, aksesibilitas (axe), screenshot
 - **Simulasi pembayaran (`/dev/bayar/:ref`)** hanya terdaftar ketika `import.meta.env.DEV` bernilai true (dev server), dan hanya dipakai bila backend memakai provider `fake`. Build produksi tidak memuatnya.
 - **State di URL:** pencarian, kategori, urutan, dan halaman katalog ada di query string (`?q=&kategori=&urut=&halaman=`).
 - **Keranjang:** halaman penuh `/keranjang`; ubah jumlah dan hapus memakai optimistic update dengan rollback bila server menolak (stok kurang).
+- **Dua shell dan dua sesi.** Toko di `/` dan admin di `/admin/*` (login `/admin/masuk`, wordmark "TokoKu Admin", rel samping gelap) tidak berbagi header, konteks autentikasi, penyimpanan, atau klien API (`api`/`adminApi`). Refresh toko di `localStorage`, refresh admin di `sessionStorage` (hilang saat tab ditutup; lebih sensitif), access token keduanya di memori, sehingga satu browser bisa masuk sebagai pembeli dan admin sekaligus. Rute admin tanpa sesi admin mengarah ke login admin (bukan 403); header toko tidak pernah memuat tautan admin dan halaman login toko tidak menyebut admin; halaman admin `noindex` (meta dan `robots.txt`); kode admin dimuat malas sehingga pembeli tidak mengunduhnya.
+- **Ongkir di UI hanya perkiraan** (`lib/shipping.ts`, aturan sama dengan server); angka yang berlaku selalu dari respons order. Pilihan pengambilan memakai radio kartu; ambil di toko menyembunyikan alamat dan menampilkan info toko dari `GET /api/store`.
+- **Invoice:** endpoint butuh Bearer, jadi PDF diambil dengan `fetch` terautentikasi lalu dibuka/diunduh sebagai blob (tab dibuka sinkron dalam gestur klik agar tidak diblokir pop-up blocker).
+- **Foto:** unggah langsung ke Cloudinary lewat XHR (agar ada progres), diproses satu per satu; validasi klien sebelum unggah (format, 5 MB, maks. 6). Urutan lewat tombol Kiri/Kanan (aksesibel keyboard). Galeri memakai `srcset` tiga ukuran dan navigasi panah.
+- **Kontrol:** select kustom Radix di desktop dan `<select>` native di perangkat sentuh (`pointer: coarse`); menu akun dan menu aksi baris memakai dropdown Radix; dialog tetap `<dialog>` bawaan; toast `aria-live` yang dijeda saat disorot; input harga berformat rupiah; fokus dipindah ke judul setelah pindah halaman.
 - **Visual produk:** placeholder "label kemasan" (nomor produk besar dari id) dengan nada netral per kategori, diganti foto bila admin mengisi `imageUrl`.
 - **Aksesibilitas:** HTML semantik, label terhubung ke kolom, focus ring, `aria-live` untuk toast dan jumlah, `<dialog>` bawaan untuk konfirmasi, `prefers-reduced-motion` dihormati, dan axe tanpa pelanggaran serious/critical pada halaman utama (di e2e).
 - **Versi:** TypeScript 5.9 (bukan rilis terbaru) karena `openapi-typescript` mensyaratkan `typescript@^5`.
