@@ -77,7 +77,7 @@ export function ProductPage() {
         <Link to="/">Katalog</Link> / <Link to={`/?kategori=${p.categoryId}`}>{p.categoryName}</Link> / <span aria-current="page">{p.name}</span>
       </nav>
       <div className="detail">
-        {p.images.length > 0 ? <Gallery images={p.images} name={p.name} /> : <ProductVisual id={p.id} categoryId={p.categoryId} name={p.name} size="big" />}
+        <Gallery images={p.images} name={p.name} placeholder={<ProductVisual id={p.id} categoryId={p.categoryId} name={p.name} size="big" />} />
         <section className="panel" aria-labelledby="judul">
           <span className="cat">{p.categoryName}</span>
           <h1 id="judul" className="page-title">

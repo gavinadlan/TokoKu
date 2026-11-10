@@ -41,7 +41,7 @@ test.describe('foto produk', () => {
     // galeri di toko: foto nyata dengan srcset, navigasi keyboard
     await page.goto(`/produk/${created.id}`);
     const gallery = page.getByRole('group', { name: `Foto ${name}` });
-    await expect(gallery.locator('.stage img')).toHaveAttribute('srcset', /160w.*480w.*960w/);
+    await expect(gallery.locator('.stage img').first()).toHaveAttribute('srcset', /160w.*480w.*960w.*1600w/);
     await expect(gallery.getByText('1 / 2').or(gallery.getByText('2 / 2'))).toBeVisible();
     const first = await gallery.locator('output').innerText();
     await gallery.getByRole('button', { name: 'Foto berikutnya' }).focus();

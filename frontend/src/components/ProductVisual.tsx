@@ -13,9 +13,9 @@ interface Props {
   size?: 'card' | 'big' | 'thumb';
 }
 
-/** srcset dari tiga ukuran bernama (160, 480, 960 px lebar). */
+/** srcset dari empat ukuran bernama (160, 480, 960, 1600 px lebar). */
 export function srcSetOf(img: ProductImage): string {
-  return `${img.thumbnailUrl} 160w, ${img.cardUrl} 480w, ${img.detailUrl} 960w`;
+  return `${img.thumbnailUrl} 160w, ${img.cardUrl} 480w, ${img.detailUrl} 960w, ${img.largeUrl} 1600w`;
 }
 
 const SIZES: Record<NonNullable<Props['size']>, string> = {
