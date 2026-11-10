@@ -36,7 +36,7 @@ public class DevEmailController {
         if (!sender.delivers()) {
             return Map.of("sent", false, "reason", "Pengirim no-op: isi MAIL_USERNAME dan MAIL_PASSWORD di .env (dan APP_MAIL_ENABLED bukan false), lalu jalankan ulang backend.");
         }
-        EmailMessage m = MailTemplates.render(EmailKind.READY_FOR_PICKUP, OrderEmailService.sample(r.to(), baseUrl));
+        EmailMessage m = MailTemplates.render(EmailKind.READY_FOR_PICKUP, MailSamples.sample(r.to(), baseUrl));
         sender.send(new EmailMessage(r.to(), "[Uji] " + m.subject(), m.html(), m.text()));
         return Map.of("sent", true, "to", EmailSender.mask(r.to()));
     }

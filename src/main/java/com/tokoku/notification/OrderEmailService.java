@@ -18,6 +18,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import com.tokoku.auth.User;
 import com.tokoku.auth.UserRepository;
+import com.tokoku.invoice.InvoiceService;
 import com.tokoku.order.FulfillmentType;
 import com.tokoku.order.Order;
 import com.tokoku.order.OrderRepository;
@@ -39,6 +40,8 @@ public class OrderEmailService {
     private final OrderRepository orders;
     private final UserRepository users;
     private final StoreService store;
+    private final InvoiceService invoices;
+    private final java.time.ZoneId zone;
     private final JdbcTemplate jdbc;
     private final TransactionTemplate readTx;
     private final String frontendBaseUrl;
@@ -46,18 +49,22 @@ public class OrderEmailService {
 
     @Autowired
     public OrderEmailService(EmailSender sender, OrderRepository orders, UserRepository users, StoreService store,
-            JdbcTemplate jdbc, PlatformTransactionManager tm,
+            InvoiceService invoices, JdbcTemplate jdbc, PlatformTransactionManager tm,
             @Value("${app.frontend.base-url:http://localhost:5173}") String frontendBaseUrl,
+            @Value("${app.timezone:Asia/Jakarta}") String timezone,
             @Value("${app.mail.retry-backoff-ms:2000}") long backoffMs) {
-        this(sender, orders, users, store, jdbc, tm, frontendBaseUrl, Duration.ofMillis(backoffMs));
+        this(sender, orders, users, store, invoices, jdbc, tm, frontendBaseUrl, java.time.ZoneId.of(timezone), Duration.ofMillis(backoffMs));
     }
 
     OrderEmailService(EmailSender sender, OrderRepository orders, UserRepository users, StoreService store,
-            JdbcTemplate jdbc, PlatformTransactionManager tm, String frontendBaseUrl, Duration backoff) {
+            InvoiceService invoices, JdbcTemplate jdbc, PlatformTransactionManager tm, String frontendBaseUrl,
+            java.time.ZoneId zone, Duration backoff) {
         this.sender = sender;
         this.orders = orders;
         this.users = users;
         this.store = store;
+        this.invoices = invoices;
+        this.zone = zone;
         this.jdbc = jdbc;
         this.readTx = new TransactionTemplate(tm);
         this.readTx.setReadOnly(true);
@@ -88,7 +95,10 @@ public class OrderEmailService {
             log.info("Email {} untuk order {} sudah pernah diproses, dilewati", kind, orderId);
             return false;
         }
-        Optional<EmailMessage> message = readTx.execute(s -> build(orderId, kind));
+        // PDF dibuat DI LUAR transaksi baca: exception dari InvoiceService (mis. 409 identitas toko kosong) akan menandai
+        // transaksi yang ikut serta sebagai rollback-only dan menggagalkan seluruh pembuatan email.
+        byte[] pdf = kind == EmailKind.PAID ? invoicePdf(orderId) : null;
+        Optional<EmailMessage> message = readTx.execute(s -> build(orderId, kind, pdf));
         if (message == null || message.isEmpty()) {
             jdbc.update("UPDATE email_log SET status = 'FAILED' WHERE order_id = ? AND kind = ?", orderId, kind.name());
             log.warn("Email {} untuk order {}: data order/penerima tidak ditemukan", kind, orderId);
@@ -113,28 +123,38 @@ public class OrderEmailService {
         return false;
     }
 
-    private Optional<EmailMessage> build(Long orderId, EmailKind kind) {
+    private Optional<EmailMessage> build(Long orderId, EmailKind kind, byte[] pdf) {
         Order o = orders.findById(orderId).orElse(null);
         if (o == null) return Optional.empty();
         User owner = users.findById(o.getUserId()).orElse(null); // penerima = pemilik pesanan, tidak ada sumber lain
         if (owner == null || owner.getEmail() == null || owner.getEmail().isBlank()) return Optional.empty();
         StoreSettings s = store.current();
-        MailData d = new MailData(o.getId(), owner.getName(), owner.getEmail(), o.getTotalAmount(),
+        java.time.Instant when = kind == EmailKind.PAID && o.getInvoicedAt() != null ? o.getInvoicedAt() : o.getCreatedAt();
+        MailData d = new MailData(o.getId(), owner.getName(), owner.getEmail(), MailTemplates.dateLabel(when, zone),
                 o.getFulfillmentType() == FulfillmentType.PICKUP,
-                o.getItems().stream().map(i -> new MailData.Line(i.getProductName(), i.getQuantity())).toList(),
-                o.getPickupCode(), o.getCourier(), o.getTrackingNumber(),
-                frontendBaseUrl + "/order/" + o.getId(), s.getName(), s.getAddress(), s.getOpeningHours(), s.getPickupInstructions());
-        return Optional.of(MailTemplates.render(kind, d));
+                o.getItems().stream().map(i -> new MailData.Line(i.getProductName(), i.getQuantity(), i.getUnitPrice(), i.getSubtotal())).toList(),
+                o.getSubtotal(), o.getShippingFee(), o.getTotalAmount(), o.getShippingName(), o.getShippingAddress(),
+                o.getPickupCode(), o.getCourier(), o.getTrackingNumber(), o.getInvoiceNumber(), pdf != null && o.getInvoiceNumber() != null,
+                frontendBaseUrl + "/order/" + o.getId(), s.getName(), s.getAddress(), s.getPhone(), s.getEmail(),
+                s.getOpeningHours(), s.getPickupInstructions());
+        EmailMessage m = MailTemplates.render(kind, d);
+        if (pdf != null && o.getInvoiceNumber() != null) {
+            m = m.withAttachments(List.of(new EmailMessage.Attachment(o.getInvoiceNumber() + ".pdf", "application/pdf", pdf)));
+        }
+        return Optional.of(m);
+    }
+
+    /** Lampiran invoice hanya bila sudah terbit dan bisa dibuat (identitas toko lengkap); kegagalan apa pun = tanpa lampiran. */
+    private byte[] invoicePdf(Long orderId) {
+        try {
+            return invoices.forAdmin(orderId);
+        } catch (RuntimeException e) {
+            log.info("Invoice order {} tidak dilampirkan: {}", orderId, e.getClass().getSimpleName());
+            return null;
+        }
     }
 
     private static void pause(Duration d) {
         try { Thread.sleep(d.toMillis()); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-    }
-
-    /** Untuk endpoint dev: contoh data tetap, tidak menyentuh DB. */
-    public static MailData sample(String to, String baseUrl) {
-        return new MailData(1L, "Pengguna Uji", to, new java.math.BigDecimal("100000"), true,
-                List.of(new MailData.Line("Kopi Arabika Gayo 250g", 1)), "K7M2QX", "JNE", "CGK123456",
-                baseUrl + "/order/1", "TokoKu", "Jl. Contoh No. 1", "Senin-Sabtu 08.00-17.00", "");
     }
 }

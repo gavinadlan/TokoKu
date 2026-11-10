@@ -24,6 +24,9 @@ public class SmtpEmailSender implements EmailSender {
             h.setTo(m.to());
             h.setSubject(m.subject());
             h.setText(m.text(), m.html()); // multipart/alternative: teks + HTML
+            for (EmailMessage.Attachment a : m.attachments()) {
+                h.addAttachment(a.filename(), new org.springframework.core.io.ByteArrayResource(a.data()), a.contentType());
+            }
             mail.send(mime);
         } catch (jakarta.mail.MessagingException e) {
             throw new IllegalStateException("Gagal menyusun email", e);

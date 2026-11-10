@@ -114,6 +114,41 @@ class OrderEmailIntegrationTest extends ApiTestBase {
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(logStatus(id, "CANCELLED")).isEqualTo("SENT"));
     }
 
+    private void configureStore(boolean configured) {
+        jdbc.update("update store_settings set name = ?, address = ?, phone = ?", configured ? "TokoKu" : "", configured ? "Jl. Contoh No. 1" : "", configured ? "0800-0000" : "");
+    }
+
+    @Test
+    void paidEmailAttachesInvoicePdfWhenStoreIsConfigured() throws Exception {
+        configureStore(true);
+        try {
+            Buyer b = buyer();
+            long id = order(b);
+            settle(b, id);
+            EmailMessage paid = sent(2).stream().filter(m -> m.subject().contains("Pembayaran")).findFirst().orElseThrow();
+            assertThat(paid.attachments()).hasSize(1);
+            assertThat(paid.attachments().get(0).filename()).matches("INV-\\d{6}-\\d{5}\\.pdf");
+            assertThat(new String(paid.attachments().get(0).data(), 0, 5, java.nio.charset.StandardCharsets.ISO_8859_1)).isEqualTo("%PDF-");
+            assertThat(paid.html()).contains("terlampir sebagai PDF");
+            // email "dibuat" tidak melampirkan apa pun
+            assertThat(sent(1).stream().filter(m -> m.subject().contains("dibuat")).allMatch(m -> m.attachments().isEmpty())).isTrue();
+        } finally {
+            configureStore(false);
+        }
+    }
+
+    @Test
+    void paidEmailIsSentWithoutAttachmentWhenInvoiceCannotBeIssued() throws Exception {
+        configureStore(false); // identitas toko kosong: invoice 409
+        Buyer b = buyer();
+        long id = order(b);
+        settle(b, id);
+        EmailMessage paid = sent(2).stream().filter(m -> m.subject().contains("Pembayaran")).findFirst().orElseThrow();
+        assertThat(paid.attachments()).isEmpty();
+        assertThat(paid.html()).doesNotContain("terlampir");
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> assertThat(logStatus(id, "PAID")).isEqualTo("SENT"));
+    }
+
     private String logStatus(long orderId, String kind) {
         return jdbc.query("select status from email_log where order_id = ? and kind = ?", rs -> rs.next() ? rs.getString(1) : null, orderId, kind);
     }

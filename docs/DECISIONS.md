@@ -141,3 +141,13 @@
 - **A11y:** hitungan di `role="status"` (aria-live sopan); "Diperbarui X detik lalu" sengaja bukan live region (berubah tiap 5 detik = bising); penanda baru punya teks (`aria-label`), bukan hanya warna; tidak ada animasi baru. Tanpa suara dan popup.
 - **Tidak dibuat:** halaman detail order admin tidak ada (detail ada di baris tabel), jadi tidak ada polling terpisah untuk detail admin.
 - **e2e:** playwright memaksa provider `fake` untuk pembayaran, foto, dan email, karena `.env` lokal kini berisi kunci asli.
+
+## Desain struk email
+
+- **Dua tata letak:** "pesanan dibuat" dan "pembayaran diterima" memakai struk lengkap (nomor, tanggal WIB dari zona toko, pembeli, pengambilan, tujuan, tabel barang, subtotal/ongkir/total, status berupa teks "Lunas"/"Menunggu pembayaran" bukan warna saja); jenis lain tetap ringkas.
+- **Kompatibilitas:** tabel + CSS inline, lebar maks 600px, satu `@media` kecil untuk ponsel (penyempurnaan, bukan syarat), tombol "antipeluru" berupa sel tabel berlatar hijau (Outlook). Font sistem (Georgia untuk judul, tumpukan sans sistem) karena web font tidak andal di email. Warna dari token `docs/DESIGN.md`; pasangan teks/latar sama dengan yang sudah lolos AA di aplikasi.
+- **Logo:** belum ada berkas logo, jadi kepala toko berupa wordmark teks (nama + alamat + telepon dari `store_settings`). Tanpa gambar berarti tidak ada teks alternatif yang perlu diisi; bila logo ditambahkan kelak, beri `alt` = nama toko.
+- **Rupiah:** `Rp12.500` (permintaan; frontend memakai `Rp 12.500` dengan spasi tak terputus).
+- **Lampiran:** PDF invoice dibuat DI LUAR transaksi pembuatan email. Exception dari `InvoiceService` (409 identitas toko kosong) yang lewat proxy `@Transactional` menandai transaksi yang ikut serta sebagai rollback-only dan awalnya menggagalkan seluruh email; test `paidEmailIsSentWithoutAttachmentWhenInvoiceCannotBeIssued` menjaganya. Lampiran hanya untuk jenis PAID.
+- **Pratinjau:** `/api/dev/email-preview/{kind}` (profil dev, data contoh tetap tanpa DB), `scripts/email-preview.sh`, dan `email-shots.spec.ts`. Ronde kritik diri: "No. pesanan / No. 0128" berulang, alamat toko berulang di kepala dan kaki, dan baris Subtotal yang sama dengan Total pada ambil-di-toko; ketiganya dihapus.
+- **Belum terverifikasi:** tampilan di Gmail/Outlook/Apple Mail sungguhan (hanya Chromium); mode gelap klien email.
