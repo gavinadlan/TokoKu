@@ -63,6 +63,10 @@ docker compose up --build
 | `JWT_SECRET` | opsional | **wajib**, min 32 byte | Kosong di dev = kunci acak sementara (token hangus saat restart). Buat: `openssl rand -base64 48` |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | opsional | opsional | Admin awal, idempoten |
 | `APP_FRONTEND_BASE_URL` | wajib di prod | `http://localhost:5173` | URL publik frontend; dikirim sebagai `callbacks.finish` ke Midtrans (`{URL}/pembayaran/selesai`). Prod gagal start bila kosong/localhost |
+| `APP_MAIL_ENABLED` | opsional | `true` | `false` = email dimatikan (no-op) |
+| `MAIL_HOST`, `MAIL_PORT` | opsional | `smtp.gmail.com`, `587` | STARTTLS wajib |
+| `MAIL_USERNAME`, `MAIL_PASSWORD` | untuk email | kosong | Gmail + App Password; kosong = no-op |
+| `MAIL_FROM` | opsional | `TokoKu <noreply@tokoku.local>` | Gmail menulis ulang pengirim ke akun Anda; isi alamat yang sama dengan `MAIL_USERNAME` |
 | `APP_CORS_ALLOWED_ORIGINS` | opsional | isi origin frontend | Dipisah koma |
 | `APP_PAYMENT_PROVIDER` | `midtrans` / `fake` | `midtrans` | `fake` ditolak di prod |
 | `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY` | wajib jika `midtrans` | wajib | App gagal start jika kosong |
@@ -177,6 +181,12 @@ Lihat tabel lengkap di bagian **Kontrak API** di bawah (diperbarui bersama kode)
 | POST | `/api/dev/uploads` | Dev (images fake) | Meniru unggahan Cloudinary di dev |
 | POST | `/api/dev/payments/{ref}/simulate` | Dev (provider fake) | Simulasi webhook |
 
+## Email notifikasi
+
+Pembeli menerima email saat pesanan dibuat, dibayar, diproses, siap diambil (dengan alamat, jam toko, kode ambil), dikirim (dengan resi), selesai, dan dibatalkan/kedaluwarsa. Pengiriman berjalan di thread pool kecil setelah transaksi commit, dicoba maksimal 3 kali, dan kegagalan hanya di-log (tidak pernah menggagalkan webhook atau perubahan status). Tabel `email_log` (unik per pesanan + jenis) mencegah email dobel saat webhook dikirim ulang. Tanpa `MAIL_USERNAME`/`MAIL_PASSWORD` (atau `APP_MAIL_ENABLED=false`) email dilewati dan hanya dicatat di log tanpa isi dan alamat penuh. Test dan CI selalu no-op.
+
+**Membuat Gmail App Password:** (1) aktifkan Verifikasi 2 Langkah di akun Google, (2) buka myaccount.google.com/apppasswords, (3) buat sandi untuk "TokoKu", salin 16 karakternya (tanpa spasi), (4) isi `.env`: `MAIL_USERNAME=alamat@gmail.com`, `MAIL_PASSWORD=<16 karakter>`, `MAIL_FROM=TokoKu <alamat@gmail.com>`, (5) jalankan ulang `scripts/dev-backend.sh` (log menampilkan `Email: SMTP aktif`), lalu coba `scripts/test-email.sh alamat-tujuan@contoh.com` (hanya di dev). Gmail membatasi sekitar 500 email per hari untuk akun biasa; cukup untuk toko kecil, ganti `EmailSender` bila perlu lebih.
+
 ## Deploy (Render + Neon)
 
 Detail: bagian "Infrastruktur & Deployment Gratis" di [docs/PRD.md](docs/PRD.md). Checklist:
@@ -184,7 +194,7 @@ Detail: bagian "Infrastruktur & Deployment Gratis" di [docs/PRD.md](docs/PRD.md)
 - [ ] Repo di GitHub, `.env` tidak ikut commit. CI (`.github/workflows/ci.yml`) **belum pernah berjalan di GitHub**; periksa hasilnya pada push pertama.
 - [ ] Neon: buat project, ubah connection string ke `jdbc:postgresql://HOST/DB?sslmode=require`, simpan user dan password terpisah.
 - [ ] Render: New Web Service, runtime Docker, instance Free, health check path `/actuator/health`.
-- [ ] Env di Render: `SPRING_PROFILES_ACTIVE=prod`, `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `APP_CORS_ALLOWED_ORIGINS`, `APP_FRONTEND_BASE_URL`, `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, `MIDTRANS_API_URL`.
+- [ ] Env di Render: `SPRING_PROFILES_ACTIVE=prod`, `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `APP_CORS_ALLOWED_ORIGINS`, `APP_FRONTEND_BASE_URL`, `APP_MAIL_ENABLED`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM`, `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, `MIDTRANS_API_URL`.
 - [ ] Dashboard Midtrans: Notification URL `https://<service>.onrender.com/api/payments/webhook`.
 - [ ] Buka `/swagger-ui.html`; request pertama setelah idle sekitar satu menit.
 - [ ] Ganti password admin awal; jangan pakai kunci sandbox untuk uang sungguhan.

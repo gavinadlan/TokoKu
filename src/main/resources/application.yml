@@ -15,7 +15,22 @@ spring:
       ddl-auto: validate          # skema hanya dikelola Flyway
   flyway:
     enabled: true
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: true
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
 management:
+  health:
+    mail:
+      enabled: false          # jangan membuka koneksi SMTP tiap health check
   endpoints:
     web:
       exposure:
@@ -28,6 +43,9 @@ app:
   admin:
     email: ${ADMIN_EMAIL:}
     password: ${ADMIN_PASSWORD:}
+  mail:
+    enabled: ${APP_MAIL_ENABLED:true}
+    from: ${MAIL_FROM:TokoKu <noreply@tokoku.local>}   # untuk Gmail: pakai alamat yang sama dengan MAIL_USERNAME
   frontend:
     base-url: ${APP_FRONTEND_BASE_URL:http://localhost:5173}   # tujuan redirect setelah bayar; wajib URL publik di prod
   payment:

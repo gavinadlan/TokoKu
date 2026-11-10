@@ -123,3 +123,12 @@
 - **Konfigurasi:** `APP_FRONTEND_BASE_URL` (default dev `http://localhost:5173`). Profil `prod` gagal start bila kosong atau localhost.
 - **Frontend:** halaman hasil memeriksa status tiap 4 detik maksimal 30 detik ("Pembayaran sedang diverifikasi"), lalu berhenti dan menawarkan "Periksa status" manual (webhook bisa terlambat atau tidak masuk di lokal).
 - **Belum terverifikasi:** `callbacks.error`/`callbacks.pending` tidak dikirim (tidak ada di dokumentasi yang dibaca); bila pembeli memilih kembali dari halaman Midtrans, finish tidak dipanggil. Perilaku Snap yang menimpa Finish URL dashboard dengan `callbacks.finish` perlu dicek manual.
+
+## Email notifikasi (SMTP Gmail)
+
+- **Antarmuka:** `EmailSender` (`SmtpEmailSender`, `NoopEmailSender`); dipilih di `MailConfig`: SMTP hanya bila `APP_MAIL_ENABLED` bukan false dan `MAIL_USERNAME` + `MAIL_PASSWORD` terisi. Test memaksa `app.mail.enabled=false`.
+- **Pemicu:** `OrderService`/`PaymentService` memublikasikan `OrderNotification` di dalam transaksi; `OrderEmailService` memprosesnya `@TransactionalEventListener(AFTER_COMMIT)` + `@Async` di pool 2 thread. Rollback = tidak ada email. Pembatalan lewat `cancelAndRestock` (batal pembeli, kedaluwarsa, webhook gagal) satu jalur.
+- **Idempotensi:** `email_log` unik (order, jenis); klaim `INSERT ... ON CONFLICT DO NOTHING` sebelum kirim. Konsekuensi: email yang gagal 3x ditandai FAILED dan tidak dicoba lagi oleh webhook ulang (lebih baik lewat satu email daripada dobel). Tanpa SMTP aktif tidak ada baris log, jadi email tidak "terkirim ulang" bila SMTP diaktifkan belakangan.
+- **Keamanan:** penerima hanya email pemilik order; nilai template di-escape; subjek hanya dari teks tetap + nomor order; log hanya memuat alamat tersamar dan nama kelas exception (pesan SMTP bisa memuat kredensial).
+- **Health:** indikator mail dimatikan agar health check tidak membuka koneksi SMTP.
+- **Belum terverifikasi:** pengiriman SMTP sungguhan ke Gmail (butuh App Password Anda); test memakai pengirim palsu. Tampilan di klien email nyata belum diperiksa.

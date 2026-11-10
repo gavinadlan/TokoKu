@@ -6,7 +6,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +21,8 @@ import com.tokoku.cart.CartItemRepository;
 import com.tokoku.cart.CartRepository;
 import com.tokoku.common.ConflictException;
 import com.tokoku.common.NotFoundException;
+import com.tokoku.notification.EmailKind;
+import com.tokoku.notification.OrderNotification;
 import com.tokoku.order.OrderDtos.*;
 import com.tokoku.product.Product;
 import com.tokoku.payment.PaymentRepository;
@@ -46,6 +50,14 @@ public class OrderService {
 
     @PersistenceContext
     private EntityManager em;
+
+    @Autowired
+    private ApplicationEventPublisher events;
+
+    /** Email dikirim listener SETELAH commit transaksi pemanggil; jika transaksi rollback, tidak ada email. */
+    public void notifyCustomer(Order o, EmailKind kind) {
+        events.publishEvent(new OrderNotification(o.getId(), kind));
+    }
 
     public OrderService(OrderRepository orders, CartRepository carts, CartItemRepository cartItems,
             ProductRepository products, PaymentRepository payments,
@@ -102,6 +114,7 @@ public class OrderService {
         order.applyShippingFee(shipping.fee(type, order.getTotalAmount()));
         orders.save(order);
         cartItems.deleteAllByCartId(cart.getId());
+        notifyCustomer(order, EmailKind.ORDER_CREATED);
         return OrderResponse.from(order);
     }
 
@@ -206,6 +219,7 @@ public class OrderService {
             }
             default -> o.transitionTo(next);
         }
+        notifyCustomer(o, EmailKind.valueOf(next.name()));
         return OrderResponse.from(o);
     }
 
@@ -225,6 +239,7 @@ public class OrderService {
      */
     public void cancelAndRestock(Order order) {
         order.transitionTo(OrderStatus.CANCELLED);
+        notifyCustomer(order, EmailKind.CANCELLED);
         payments.closePending(order.getId());
         order.getItems().stream()
                 .sorted(Comparator.comparing(OrderItem::getProductId)) // urutan tetap = tanpa deadlock

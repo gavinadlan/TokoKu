@@ -121,6 +121,7 @@ public class PaymentService {
             if (order.getFulfillmentType() == FulfillmentType.PICKUP && order.getPickupCode() == null) {
                 order.assignPickupCode(PickupCodes.generate()); // kode ambil dibuat saat order dibayar
             }
+            orderService.notifyCustomer(order, com.tokoku.notification.EmailKind.PAID); // webhook ganda berhenti di cek payment.isPending
         } else {
             // Uang masuk setelah order dibatalkan/kedaluwarsa: butuh penanganan manual (refund)
             log.warn("Payment {} settled but order {} is {}; manual refund needed", payment.getProviderRef(), order.getId(), order.getStatus());
