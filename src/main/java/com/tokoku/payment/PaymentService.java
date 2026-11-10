@@ -15,7 +15,9 @@ import com.tokoku.auth.UserRepository;
 import com.tokoku.common.ConflictException;
 import com.tokoku.common.InvalidSignatureException;
 import com.tokoku.common.NotFoundException;
+import com.tokoku.order.FulfillmentType;
 import com.tokoku.order.Order;
+import com.tokoku.order.PickupCodes;
 import com.tokoku.order.OrderRepository;
 import com.tokoku.order.OrderService;
 import com.tokoku.order.OrderStatus;
@@ -62,8 +64,12 @@ public class PaymentService {
         }
         User user = users.findById(userId).orElseThrow(() -> new NotFoundException("User not found"));
         String ref = "TKU-" + orderId + "-" + UUID.randomUUID().toString().substring(0, 8); // unik per percobaan
-        List<Item> items = order.getItems().stream()
-                .map(i -> new Item("P" + i.getProductId(), i.getProductName(), i.getUnitPrice(), i.getQuantity())).toList();
+        List<Item> items = new java.util.ArrayList<>(order.getItems().stream()
+                .map(i -> new Item("P" + i.getProductId(), i.getProductName(), i.getUnitPrice(), i.getQuantity())).toList());
+        if (order.getShippingFee().signum() > 0) {
+            // Ongkir ikut sebagai baris sendiri agar jumlah item_details sama dengan gross_amount
+            items.add(new Item("SHIPPING", "Biaya kirim", order.getShippingFee(), 1));
+        }
         PaymentSession session = gateway.createPayment(new PaymentRequest(ref, order.getTotalAmount(), items,
                 order.getShippingName(), user.getEmail(), order.getShippingPhone(), remainingMinutes(order)));
         Payment payment = payments.save(new Payment(orderId, ref, order.getTotalAmount(), session.token(), session.redirectUrl()));
@@ -107,6 +113,9 @@ public class PaymentService {
         payment.markPaid();
         if (order.getStatus() == OrderStatus.PENDING_PAYMENT) {
             order.transitionTo(OrderStatus.PAID);
+            if (order.getFulfillmentType() == FulfillmentType.PICKUP && order.getPickupCode() == null) {
+                order.assignPickupCode(PickupCodes.generate()); // kode ambil dibuat saat order dibayar
+            }
         } else {
             // Uang masuk setelah order dibatalkan/kedaluwarsa: butuh penanganan manual (refund)
             log.warn("Payment {} settled but order {} is {}; manual refund needed", payment.getProviderRef(), order.getId(), order.getStatus());

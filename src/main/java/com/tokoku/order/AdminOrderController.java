@@ -40,6 +40,6 @@ public class AdminOrderController {
     @Operation(summary = "Majukan status order: PROCESSING, SHIPPED, COMPLETED (ADMIN)")
     @PatchMapping("/{id}/status")
     public OrderResponse changeStatus(@PathVariable Long id, @Valid @RequestBody StatusRequest request) {
-        return service.adminChangeStatus(id, request.status());
+        return service.adminChangeStatus(id, request);
     }
 }

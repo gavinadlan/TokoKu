@@ -191,7 +191,7 @@ class PaymentApiIntegrationTest extends ApiTestBase {
 
         String admin = adminToken();
         send(patch("/api/admin/orders/" + f.orderId() + "/status"), admin, "{\"status\":\"PROCESSING\"}").andExpect(status().isOk());
-        send(patch("/api/admin/orders/" + f.orderId() + "/status"), admin, "{\"status\":\"SHIPPED\"}").andExpect(status().isOk());
+        send(patch("/api/admin/orders/" + f.orderId() + "/status"), admin, "{\"status\":\"SHIPPED\",\"courier\":\"JNE\",\"trackingNumber\":\"CGK123\"}").andExpect(status().isOk());
         send(patch("/api/admin/orders/" + f.orderId() + "/status"), admin, "{\"status\":\"COMPLETED\"}")
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("COMPLETED"));
         assertThat(orders.findById(f.orderId()).orElseThrow().getStatus()).isEqualTo(OrderStatus.COMPLETED);

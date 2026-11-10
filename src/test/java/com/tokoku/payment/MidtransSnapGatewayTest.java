@@ -79,6 +79,18 @@ class MidtransSnapGatewayTest {
     }
 
     @Test
+    void shippingFeeIsItsOwnLineAndGrossAmountIncludesIt() {
+        PaymentRequest r = new PaymentRequest("TKU-8-abcd1234", new BigDecimal("105000.00"),
+                List.of(new Item("P1", "Kopi Arabika Gayo 250g", new BigDecimal("45000.00"), 2),
+                        new Item("SHIPPING", "Biaya kirim", new BigDecimal("15000.00"), 1)),
+                "Budi", "budi@example.com", "08123456789", 60);
+        gateway().createPayment(r);
+
+        assertThat(body.get()).contains("\"gross_amount\":105000").contains("\"id\":\"SHIPPING\"")
+                .contains("\"name\":\"Biaya kirim\"").contains("\"price\":15000");
+    }
+
+    @Test
     void rejectsFractionalRupiahAndMismatchedTotals() {
         assertThatThrownBy(() -> gateway().createPayment(request("90000.50", "45000.25")))
                 .isInstanceOf(PaymentGatewayException.class);
