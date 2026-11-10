@@ -57,6 +57,7 @@ class CloudinaryImageStorageTest {
                 .isEqualTo("https://res.cloudinary.com/democloud/image/upload/f_auto,q_auto,c_fill,ar_4:5,w_480/v1719307544/tokoku/products/abc.jpg");
         assertThat(st.variantUrl(url, "tokoku/products/abc", ImageSize.THUMBNAIL)).contains("w_160");
         assertThat(st.variantUrl(url, "tokoku/products/abc", ImageSize.DETAIL)).contains("w_960");
+        assertThat(st.variantUrl(url, "tokoku/products/abc", ImageSize.LARGE)).contains("c_fill,ar_4:5,w_1600");
     }
 
     @Test

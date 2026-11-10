@@ -1804,12 +1804,16 @@
                     },
                     "detailUrl": {
                         "type": "string"
+                    },
+                    "largeUrl": {
+                        "type": "string"
                     }
                 },
                 "required": [
                     "cardUrl",
                     "detailUrl",
                     "id",
+                    "largeUrl",
                     "position",
                     "primary",
                     "thumbnailUrl"

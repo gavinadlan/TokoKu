@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 import com.tokoku.image.ImageSize;
 import com.tokoku.image.ImageStorage;
 
-/** Menerjemahkan gambar tersimpan menjadi URL tiga ukuran bernama. */
+/** Menerjemahkan gambar tersimpan menjadi URL empat ukuran bernama. */
 @Component
 public class ProductImageUrls {
 
@@ -19,7 +19,8 @@ public class ProductImageUrls {
         return new ProductImageResponse(i.getId(), i.isPrimary(), i.getPosition(), i.getWidth(), i.getHeight(),
                 storage.variantUrl(i.getUrl(), i.getPublicId(), ImageSize.THUMBNAIL),
                 storage.variantUrl(i.getUrl(), i.getPublicId(), ImageSize.CARD),
-                storage.variantUrl(i.getUrl(), i.getPublicId(), ImageSize.DETAIL));
+                storage.variantUrl(i.getUrl(), i.getPublicId(), ImageSize.DETAIL),
+                storage.variantUrl(i.getUrl(), i.getPublicId(), ImageSize.LARGE));
     }
 
     /** Thumbnail foto utama, atau null jika produk belum punya foto. */

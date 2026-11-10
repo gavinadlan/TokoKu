@@ -718,6 +718,7 @@ export interface components {
             thumbnailUrl: string;
             cardUrl: string;
             detailUrl: string;
+            largeUrl: string;
         };
         ProductResponse: {
             /** Format: int64 */
