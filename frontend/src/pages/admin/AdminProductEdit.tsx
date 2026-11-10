@@ -66,14 +66,14 @@ function ProductForm({ product }: { product: Product | null }) {
             <input className="input" {...form.register('name')} />
           </Field>
         </div>
-        <Field label="Kategori" error={errors.categoryId?.message}>
+        <Field label="Kategori" htmlFor="p-kategori" error={errors.categoryId?.message}>
           <Controller control={form.control} name="categoryId" render={({ field }) => (
-            <Select className="input" value={field.value ? String(field.value) : ''} onChange={(v) => field.onChange(Number(v))} placeholder="Pilih kategori" invalid={Boolean(errors.categoryId)} options={(categories.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))} />
+            <Select id="p-kategori" className="input" value={field.value ? String(field.value) : ''} onChange={(v) => field.onChange(Number(v))} placeholder="Pilih kategori" invalid={Boolean(errors.categoryId)} options={(categories.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))} />
           )} />
         </Field>
-        <Field label="Harga" hint="Dalam rupiah, tanpa pecahan." error={errors.price?.message}>
+        <Field label="Harga" htmlFor="p-harga" hint="Dalam rupiah, tanpa pecahan." error={errors.price?.message}>
           <Controller control={form.control} name="price" render={({ field }) => (
-            <RupiahInput value={field.value} onChange={field.onChange} onBlur={field.onBlur} invalid={Boolean(errors.price)} />
+            <RupiahInput id="p-harga" value={field.value} onChange={field.onChange} onBlur={field.onBlur} invalid={Boolean(errors.price)} />
           )} />
         </Field>
         <Field label="Stok" error={errors.stock?.message}>

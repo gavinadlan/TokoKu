@@ -11,7 +11,7 @@ export default defineConfig({
   reporter: [['list']],
   use: { baseURL: FRONTEND, trace: 'retain-on-failure', locale: 'id-ID', viewport: { width: 1280, height: 800 } },
   projects: [
-    { name: 'e2e', testMatch: /(shop|admin|a11y)\.spec\.ts/, use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } } },
+    { name: 'e2e', testMatch: /(shop|admin|a11y|realm|fulfillment|photos)\.spec\.ts/, use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } } },
     { name: 'screens', testMatch: /screens\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
   ],
   // Backend (profil dev, provider fake, data seed) dan frontend dijalankan otomatis; yang sudah hidup dipakai ulang.

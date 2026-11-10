@@ -11,7 +11,7 @@ test.describe('alur belanja pelanggan', () => {
     await page.getByLabel('Email').fill(email);
     await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Daftar dan masuk' }).click();
-    await expect(page.locator('details.account summary')).toHaveText('Siti');
+    await expect(page.getByRole('button', { name: /Menu akun/ })).toContainText('Siti');
 
     // cari produk; state tersimpan di URL
     await page.locator('#q-desktop').fill('gayo');
@@ -35,7 +35,7 @@ test.describe('alur belanja pelanggan', () => {
 
     // checkout: validasi lalu isi
     await page.getByRole('button', { name: 'Buat pesanan dan bayar' }).click();
-    await expect(page.getByText('Isi nama penerima.')).toBeVisible();
+    await expect(page.getByText('Isi nama.')).toBeVisible();
     await page.getByLabel('Nama penerima').fill('Siti Rahmawati');
     await page.getByLabel('Nomor telepon').fill('081234567890');
     await page.getByLabel('Alamat lengkap').fill('Jl. Kopi No. 12, Menteng, Jakarta Pusat');
@@ -60,7 +60,7 @@ test.describe('alur belanja pelanggan', () => {
     await page.getByLabel('Email').fill(email);
     await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Daftar dan masuk' }).click();
-    await expect(page.locator('details.account summary')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Menu akun/ })).toBeVisible();
 
     await page.goto('/?q=dripper');
     await page.getByRole('link', { name: /Dripper V60/ }).click();
@@ -76,7 +76,7 @@ test.describe('alur belanja pelanggan', () => {
     expect((await request.get('http://localhost:8080/api/products?q=dripper')).ok()).toBeTruthy();
   });
 
-  test('guard: anonim diarahkan masuk, lalu kembali ke halaman tujuan', async ({ page }) => {
+  test('guard: anonim diarahkan masuk; pembeli tidak punya akses admin', async ({ page }) => {
     await page.goto('/keranjang');
     await expect(page).toHaveURL(/\/masuk/);
     await expect(page.getByText('Masuk dulu untuk melanjutkan.')).toBeVisible();
@@ -87,9 +87,11 @@ test.describe('alur belanja pelanggan', () => {
     await page.getByLabel('Email').fill(email);
     await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
     await page.getByRole('button', { name: 'Daftar dan masuk' }).click();
-    await expect(page.locator('details.account summary')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Menu akun/ })).toBeVisible();
+    // Pembeli membuka area admin: diarahkan ke login admin (bukan halaman 403), dan sesi toko tidak berlaku di sana
     await page.goto('/admin/produk');
-    await expect(page.getByRole('heading', { name: 'Halaman ini khusus admin' })).toBeVisible();
+    await expect(page).toHaveURL(/\/admin\/masuk/);
+    await expect(page.getByRole('heading', { name: 'Masuk pengelola' })).toBeVisible();
   });
 
   test('login salah menampilkan pesan yang jelas; 404 dirancang', async ({ page }) => {
@@ -110,7 +112,8 @@ test.describe('alur belanja pelanggan', () => {
     await expect(page.locator('.grid .card').first()).toBeVisible();
     await page.getByRole('button', { name: 'Alat Seduh Manual' }).click();
     await expect(page).toHaveURL(/kategori=\d+/);
-    await page.locator('#sort-desktop').selectOption('termurah');
+    await page.getByRole('combobox', { name: 'Urutkan' }).click();
+    await page.getByRole('option', { name: 'Harga terendah' }).click();
     await expect(page).toHaveURL(/urut=termurah/);
     // tunggu data baru (grid tidak lagi dipudarkan sebagai placeholder), lalu periksa urutan harga
     await expect.poll(async () => {

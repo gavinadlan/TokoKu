@@ -29,6 +29,7 @@ export function ProductImagesManager({ product }: { product: Product }) {
   const [toDelete, setToDelete] = useState<ProductImage | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const seq = useRef(0);
+  const queue = useRef<Promise<void>>(Promise.resolve());
 
   const images = product.images;
   const uploading = pending.filter((p) => !p.error).length;
@@ -67,7 +68,8 @@ export function ProductImagesManager({ product }: { product: Product }) {
       used++;
       const p: Pending = { key: ++seq.current, file, percent: 0, error: null, controller: new AbortController() };
       setPending((list) => [...list, p]);
-      void run(p);
+      // Unggahan diproses satu per satu: urutan, batas 6 foto, dan data produk terbaru tetap konsisten
+      queue.current = queue.current.then(() => run(p));
     }
     setActionError(rejected.length ? rejected.join(' ') : null);
     if (input.current) input.current.value = '';
@@ -129,7 +131,7 @@ export function ProductImagesManager({ product }: { product: Product }) {
               <div className="grp">
                 {p.error ? (
                   <>
-                    <button type="button" onClick={() => void run({ ...p, controller: new AbortController() })}>Coba lagi</button>
+                    <button type="button" onClick={() => { queue.current = queue.current.then(() => run({ ...p, controller: new AbortController() })); }}>Coba lagi</button>
                     <button type="button" className="del" onClick={() => setPending((l) => l.filter((x) => x.key !== p.key))}>Buang</button>
                   </>
                 ) : (

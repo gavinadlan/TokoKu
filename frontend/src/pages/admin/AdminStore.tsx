@@ -76,11 +76,11 @@ function StoreForm({ s }: { s: StoreSettings }) {
         <div className="form-2 cols">
           <label className="check"><input type="checkbox" {...form.register('deliveryEnabled')} /> Terima pesanan dikirim ke alamat</label>
           <label className="check"><input type="checkbox" {...form.register('pickupEnabled')} /> Terima pesanan ambil di toko</label>
-          <Field label="Biaya kirim flat" hint="Isi 0 bila tidak memungut ongkir." error={errors.flatShippingFee?.message}>
-            <Controller control={form.control} name="flatShippingFee" render={({ field }) => <RupiahInput value={field.value} onChange={field.onChange} onBlur={field.onBlur} invalid={Boolean(errors.flatShippingFee)} />} />
+          <Field label="Biaya kirim flat" htmlFor="s-fee" hint="Isi 0 bila tidak memungut ongkir." error={errors.flatShippingFee?.message}>
+            <Controller control={form.control} name="flatShippingFee" render={({ field }) => <RupiahInput id="s-fee" value={field.value} onChange={field.onChange} onBlur={field.onBlur} invalid={Boolean(errors.flatShippingFee)} />} />
           </Field>
-          <Field label="Gratis ongkir mulai belanja (opsional)" hint="Kosongkan bila tidak ada gratis ongkir.">
-            <Controller control={form.control} name="freeShippingThreshold" render={({ field }) => <RupiahInput value={field.value} onChange={field.onChange} onBlur={field.onBlur} />} />
+          <Field label="Gratis ongkir mulai belanja (opsional)" htmlFor="s-free" hint="Kosongkan bila tidak ada gratis ongkir.">
+            <Controller control={form.control} name="freeShippingThreshold" render={({ field }) => <RupiahInput id="s-free" value={field.value} onChange={field.onChange} onBlur={field.onBlur} />} />
           </Field>
           <div className="span"><Field label="Jam buka" error={errors.openingHours?.message}><input className="input" placeholder="mis. Senin sampai Sabtu, 09.00 sampai 17.00" {...form.register('openingHours')} /></Field></div>
           <div className="span"><Field label="Petunjuk pengambilan" error={errors.pickupInstructions?.message}><textarea className="input" rows={2} {...form.register('pickupInstructions')} /></Field></div>
