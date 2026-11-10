@@ -115,3 +115,11 @@
 - **Masalah:** `scripts/dev-backend.sh` memaksa `APP_PAYMENT_PROVIDER=fake` bila variabel kosong, jadi kunci Midtrans di `.env` diabaikan dan checkout menampilkan "Simulasi pembayaran".
 - **Keputusan:** skrip memilih `midtrans` bila kedua kunci Midtrans terisi, `fake` bila kosong; nilai eksplisit selalu menang. Default aplikasi (`application.yml`) tetap `midtrans`; test memakai `fake` lewat properti sendiri.
 - **Log start:** setiap gateway mencatat provider aktif (midtrans sandbox/production + host, atau fake) tanpa kunci. Midtrans gagal start bila kunci kosong; fake gagal start di prod; `DevPaymentController` hanya ada saat provider=fake dan profil bukan prod (sudah ada test).
+
+## Finish redirect Midtrans ke frontend
+
+- **Masalah:** request Snap tidak memuat `callbacks`, jadi setelah bayar pembeli dikirim ke Finish URL default dashboard (example.com).
+- **Keputusan:** `MidtransSnapGateway` mengirim `callbacks.finish = {APP_FRONTEND_BASE_URL}/pembayaran/selesai`. Rute itu sudah ada di frontend (`PaymentReturnPage`); Midtrans menambahkan `order_id` (= providerRef `TKU-<id>-<hex>`), `status_code`, `transaction_status` ke query string, dan frontend hanya memakai `order_id`, lalu mengambil status asli dari API (query string tidak dipercaya).
+- **Konfigurasi:** `APP_FRONTEND_BASE_URL` (default dev `http://localhost:5173`). Profil `prod` gagal start bila kosong atau localhost.
+- **Frontend:** halaman hasil memeriksa status tiap 4 detik maksimal 30 detik ("Pembayaran sedang diverifikasi"), lalu berhenti dan menawarkan "Periksa status" manual (webhook bisa terlambat atau tidak masuk di lokal).
+- **Belum terverifikasi:** `callbacks.error`/`callbacks.pending` tidak dikirim (tidak ada di dokumentasi yang dibaca); bila pembeli memilih kembali dari halaman Midtrans, finish tidak dipanggil. Perilaku Snap yang menimpa Finish URL dashboard dengan `callbacks.finish` perlu dicek manual.

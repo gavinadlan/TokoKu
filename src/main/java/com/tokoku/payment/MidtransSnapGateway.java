@@ -36,12 +36,23 @@ public class MidtransSnapGateway implements PaymentGateway {
     private final String serverKey;
     private final String clientKey;
     private final String snapUrl;
+    private final String finishUrl;
+    static final String FINISH_PATH = "/pembayaran/selesai"; // rute frontend; Midtrans menambahkan ?order_id=...&status_code=...&transaction_status=...
     private final RestClient http;
 
     public MidtransSnapGateway(
             @Value("${app.payment.midtrans.server-key:}") String serverKey,
             @Value("${app.payment.midtrans.client-key:}") String clientKey,
-            @Value("${app.payment.midtrans.snap-url}") String snapUrl) {
+            @Value("${app.payment.midtrans.snap-url}") String snapUrl,
+            @Value("${app.frontend.base-url:}") String frontendBaseUrl,
+            org.springframework.core.env.Environment env) {
+        String base = frontendBaseUrl.strip().replaceAll("/+$", "");
+        boolean local = base.isEmpty() || base.matches("(?i)https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?");
+        if (local && env.acceptsProfiles(org.springframework.core.env.Profiles.of("prod"))) {
+            throw new IllegalStateException(
+                    "APP_FRONTEND_BASE_URL must be set to the public frontend URL (not empty or localhost) in the prod profile");
+        }
+        this.finishUrl = base + FINISH_PATH;
         if (serverKey.isBlank() || clientKey.isBlank()) {
             throw new IllegalStateException(
                     "app.payment.provider=midtrans requires MIDTRANS_SERVER_KEY and MIDTRANS_CLIENT_KEY "
@@ -63,6 +74,7 @@ public class MidtransSnapGateway implements PaymentGateway {
     @Override
     public PaymentSession createPayment(PaymentRequest r) {
         Map<String, Object> body = buildBody(r);
+        log.info("Snap request order_id={} callbacks.finish={}", r.providerRef(), finishUrl);
         try {
             Map<?, ?> response = http.post().uri(snapUrl)
                     .header(HttpHeaders.AUTHORIZATION, "Basic " + Base64.getEncoder()
@@ -101,6 +113,7 @@ public class MidtransSnapGateway implements PaymentGateway {
         body.put("item_details", items);
         body.put("customer_details", Map.of("first_name", truncate(r.customerName(), 50),
                 "email", r.customerEmail(), "phone", r.customerPhone()));
+        body.put("callbacks", Map.of("finish", finishUrl));
         body.put("expiry", Map.of("unit", "minutes", "duration", r.expiryMinutes()));
         return body;
     }

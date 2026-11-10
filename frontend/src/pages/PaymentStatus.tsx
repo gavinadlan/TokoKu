@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { useOrder } from '../api/queries';
@@ -12,8 +13,15 @@ import { NotFoundView } from './NotFound';
  * Halaman tujuan setelah bayar. Status order berubah lewat webhook Midtrans, jadi diperiksa berkala.
  * Di lokal webhook tidak bisa menjangkau localhost, sehingga ada tombol "Periksa status".
  */
-function StatusView({ orderId }: { orderId: number }) {
-  const order = useOrder(orderId, { poll: true });
+export const POLL_LIMIT_MS = 30_000;
+
+export function StatusView({ orderId }: { orderId: number }) {
+  const [gaveUp, setGaveUp] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setGaveUp(true), POLL_LIMIT_MS);
+    return () => clearTimeout(t);
+  }, []);
+  const order = useOrder(orderId, { poll: !gaveUp });
   const qc = useQueryClient();
   useDocumentTitle('Status pembayaran');
 
@@ -32,7 +40,6 @@ function StatusView({ orderId }: { orderId: number }) {
             <h1>Pembayaran diterima</h1>
             <p className="muted">
               Terima kasih. Order No. {String(o.id).padStart(4, '0')} sebesar <b className="tnum">{formatRupiah(o.totalAmount)}</b> sudah dibayar dan sedang kami siapkan.{o.fulfillmentType === 'PICKUP' && ' Kode ambil ada di halaman order.'}
-              {o.fulfillmentType === 'PICKUP' && ' Kode ambil ada di halaman order.'}
             </p>
           </>
         ) : status === 'CANCELLED' ? (
@@ -42,13 +49,18 @@ function StatusView({ orderId }: { orderId: number }) {
               Pembayaran ditolak atau sudah kedaluwarsa, jadi pesanan dibatalkan dan barangnya dikembalikan ke stok. Anda bisa memesan lagi kapan saja.
             </p>
           </>
+        ) : gaveUp ? (
+          <>
+            <h1>Pembayaran belum terkonfirmasi</h1>
+            <p className="muted">
+              Konfirmasi dari bank atau dompet digital kadang butuh waktu satu sampai beberapa menit. Tekan &ldquo;Periksa status&rdquo; untuk memeriksa ulang,
+              atau buka halaman order nanti. Di lingkungan lokal, notifikasi pembayaran tidak bisa sampai ke server, jadi status tidak berubah sendiri.
+            </p>
+          </>
         ) : (
           <>
-            <h1>Menunggu konfirmasi pembayaran</h1>
-            <p className="muted">
-              Kami memeriksa status setiap beberapa detik. Konfirmasi dari bank atau dompet digital kadang butuh waktu satu sampai beberapa menit.
-              Di lingkungan lokal, notifikasi pembayaran tidak bisa sampai ke server, jadi status mungkin tidak berubah sendiri; tekan &ldquo;Periksa status&rdquo; untuk memeriksa ulang.
-            </p>
+            <h1>Pembayaran sedang diverifikasi</h1>
+            <p className="muted">Kami memeriksa status setiap beberapa detik. Halaman ini akan diperbarui sendiri.</p>
           </>
         )}
         <div className="actions" style={{ display: 'flex', gap: 'var(--s-3)', flexWrap: 'wrap' }}>

@@ -28,6 +28,8 @@ app:
   admin:
     email: ${ADMIN_EMAIL:}
     password: ${ADMIN_PASSWORD:}
+  frontend:
+    base-url: ${APP_FRONTEND_BASE_URL:http://localhost:5173}   # tujuan redirect setelah bayar; wajib URL publik di prod
   payment:
     provider: ${APP_PAYMENT_PROVIDER:midtrans}   # midtrans | fake (fake dilarang di prod)
     midtrans:

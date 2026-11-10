@@ -53,7 +53,8 @@ class MidtransSnapGatewayTest {
 
     private MidtransSnapGateway gateway() {
         return new MidtransSnapGateway(SERVER_KEY, "SB-Mid-client-EXAMPLE",
-                "http://127.0.0.1:" + server.getAddress().getPort() + "/snap/v1/transactions");
+                "http://127.0.0.1:" + server.getAddress().getPort() + "/snap/v1/transactions",
+                "https://tokoku.example.com/", new org.springframework.mock.env.MockEnvironment());
     }
 
     private PaymentRequest request(String amount, String itemPrice) {
@@ -76,6 +77,23 @@ class MidtransSnapGatewayTest {
                 .contains("\"item_details\"").contains("\"price\":45000").contains("\"quantity\":2")
                 .contains("\"customer_details\"").contains("\"email\":\"budi@example.com\"")
                 .contains("\"expiry\"").contains("\"unit\":\"minutes\"").contains("\"duration\":60");
+    }
+
+    @Test
+    void sendsFinishCallbackToFrontendResultPage() {
+        gateway().createPayment(request("90000.00", "45000.00"));
+        assertThat(body.get()).contains("\"callbacks\":{\"finish\":\"https://tokoku.example.com/pembayaran/selesai\"}");
+    }
+
+    @Test
+    void prodRejectsEmptyOrLocalhostFrontendUrl() {
+        var prod = new org.springframework.mock.env.MockEnvironment().withProperty("spring.profiles.active", "prod");
+        prod.setActiveProfiles("prod");
+        for (String url : new String[] { "", "http://localhost:5173", "http://127.0.0.1:3000" }) {
+            assertThatThrownBy(() -> new MidtransSnapGateway("k", "c", "http://x", url, prod))
+                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("APP_FRONTEND_BASE_URL");
+        }
+        new MidtransSnapGateway("k", "c", "http://x", "https://tokoku.example.com", prod);
     }
 
     @Test
@@ -110,7 +128,7 @@ class MidtransSnapGatewayTest {
 
     @Test
     void blankKeysFailFastWithClearMessage() {
-        assertThatThrownBy(() -> new MidtransSnapGateway("", "", "http://x"))
+        assertThatThrownBy(() -> new MidtransSnapGateway("", "", "http://x", "http://localhost:5173", new org.springframework.mock.env.MockEnvironment()))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("MIDTRANS_SERVER_KEY");
     }
 

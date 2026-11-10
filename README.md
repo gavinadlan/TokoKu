@@ -62,6 +62,7 @@ docker compose up --build
 | `PORT` | - | otomatis (Render) | Default 8080 |
 | `JWT_SECRET` | opsional | **wajib**, min 32 byte | Kosong di dev = kunci acak sementara (token hangus saat restart). Buat: `openssl rand -base64 48` |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | opsional | opsional | Admin awal, idempoten |
+| `APP_FRONTEND_BASE_URL` | wajib di prod | `http://localhost:5173` | URL publik frontend; dikirim sebagai `callbacks.finish` ke Midtrans (`{URL}/pembayaran/selesai`). Prod gagal start bila kosong/localhost |
 | `APP_CORS_ALLOWED_ORIGINS` | opsional | isi origin frontend | Dipisah koma |
 | `APP_PAYMENT_PROVIDER` | `midtrans` / `fake` | `midtrans` | `fake` ditolak di prod |
 | `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY` | wajib jika `midtrans` | wajib | App gagal start jika kosong |
@@ -183,7 +184,7 @@ Detail: bagian "Infrastruktur & Deployment Gratis" di [docs/PRD.md](docs/PRD.md)
 - [ ] Repo di GitHub, `.env` tidak ikut commit. CI (`.github/workflows/ci.yml`) **belum pernah berjalan di GitHub**; periksa hasilnya pada push pertama.
 - [ ] Neon: buat project, ubah connection string ke `jdbc:postgresql://HOST/DB?sslmode=require`, simpan user dan password terpisah.
 - [ ] Render: New Web Service, runtime Docker, instance Free, health check path `/actuator/health`.
-- [ ] Env di Render: `SPRING_PROFILES_ACTIVE=prod`, `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `APP_CORS_ALLOWED_ORIGINS`, `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, `MIDTRANS_API_URL`.
+- [ ] Env di Render: `SPRING_PROFILES_ACTIVE=prod`, `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `JWT_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `APP_CORS_ALLOWED_ORIGINS`, `APP_FRONTEND_BASE_URL`, `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, `MIDTRANS_API_URL`.
 - [ ] Dashboard Midtrans: Notification URL `https://<service>.onrender.com/api/payments/webhook`.
 - [ ] Buka `/swagger-ui.html`; request pertama setelah idle sekitar satu menit.
 - [ ] Ganti password admin awal; jangan pakai kunci sandbox untuk uang sungguhan.
