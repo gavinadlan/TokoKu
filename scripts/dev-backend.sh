@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Menjalankan backend untuk pengembangan frontend: Postgres (Docker), profil dev (data seed kopi),
-# provider pembayaran fake (override, .env tidak diubah), CORS untuk frontend.
+# provider pembayaran (midtrans bila kunci ada, kalau tidak fake), CORS untuk frontend.
 #   scripts/dev-backend.sh            jalankan
 #   scripts/dev-backend.sh --reset    hapus data database dulu (volume Docker) lalu jalankan
-# Variabel opsional: FRONTEND_ORIGIN (default http://localhost:5173), APP_PAYMENT_PROVIDER (default fake)
+# Variabel opsional: FRONTEND_ORIGIN (default http://localhost:5173), APP_PAYMENT_PROVIDER (default: midtrans bila kunci terisi, kalau tidak fake)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -26,7 +26,14 @@ set -a; source .dev-admin.env; set +a
 export DATABASE_PASSWORD="$DB_PASSWORD"
 export DATABASE_URL="jdbc:postgresql://localhost:${DB_PORT:-5432}/tokoku"
 export SPRING_PROFILES_ACTIVE=dev
-export APP_PAYMENT_PROVIDER="${APP_PAYMENT_PROVIDER:-fake}"
+# Pembayaran: Midtrans bila kedua kunci ada di .env, kalau tidak fake. APP_PAYMENT_PROVIDER eksplisit selalu menang.
+if [ -z "${APP_PAYMENT_PROVIDER:-}" ]; then
+  if [ -n "${MIDTRANS_SERVER_KEY:-}" ] && [ -n "${MIDTRANS_CLIENT_KEY:-}" ]; then
+    export APP_PAYMENT_PROVIDER=midtrans
+  else
+    export APP_PAYMENT_PROVIDER=fake
+  fi
+fi
 # Dev lokal: batas login dilonggarkan (e2e masuk berkali-kali dari satu IP). Default backend: toko 5/menit per email dan 30/menit per IP, admin 3 dan 10.
 export APP_RATELIMIT_LOGIN_PER_EMAIL="${APP_RATELIMIT_LOGIN_PER_EMAIL:-1000}" APP_RATELIMIT_LOGIN_PER_IP="${APP_RATELIMIT_LOGIN_PER_IP:-1000}"
 export APP_RATELIMIT_ADMIN_LOGIN_PER_EMAIL="${APP_RATELIMIT_ADMIN_LOGIN_PER_EMAIL:-1000}" APP_RATELIMIT_ADMIN_LOGIN_PER_IP="${APP_RATELIMIT_ADMIN_LOGIN_PER_IP:-1000}"

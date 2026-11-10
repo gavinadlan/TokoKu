@@ -109,3 +109,9 @@
 - **Batas login dev:** `scripts/dev-backend.sh` juga melonggarkan limiter login admin (1000/menit) untuk e2e; default backend tetap 3/menit per email dan 10 per IP.
 - **Kode ambil tidak ditampilkan ke admin**: admin memasukkannya dari pembeli (verifikasi). Pembeli melihatnya setelah status `READY_FOR_PICKUP`.
 - Kritik diri (screenshot `docs/design/screens/round2-before/` vs `docs/design/screens/`): (1) chevron Radix tampil sebagai panah rusak (ikon bawaan Radix), (2) kolom form admin merenggang vertikal (`.field` tanpa `align-content: start`), (3) judul admin kena focus ring saat fokus programatik, (4) linimasa order terlalu rapat dengan format waktu panjang, (5) baris tabel admin terlalu tinggi untuk alat kerja padat (dikurangi untuk pointer halus, area sentuh 44px tetap di ponsel).
+
+## Pemilihan provider pembayaran di dev (perbaikan)
+
+- **Masalah:** `scripts/dev-backend.sh` memaksa `APP_PAYMENT_PROVIDER=fake` bila variabel kosong, jadi kunci Midtrans di `.env` diabaikan dan checkout menampilkan "Simulasi pembayaran".
+- **Keputusan:** skrip memilih `midtrans` bila kedua kunci Midtrans terisi, `fake` bila kosong; nilai eksplisit selalu menang. Default aplikasi (`application.yml`) tetap `midtrans`; test memakai `fake` lewat properti sendiri.
+- **Log start:** setiap gateway mencatat provider aktif (midtrans sandbox/production + host, atau fake) tanpa kunci. Midtrans gagal start bila kunci kosong; fake gagal start di prod; `DevPaymentController` hanya ada saat provider=fake dan profil bukan prod (sudah ada test).

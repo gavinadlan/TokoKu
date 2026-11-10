@@ -12,7 +12,7 @@ Belum ada: cache Redis (opsional di PRD, dilewati), email, login Google, ongkir 
 Aplikasi web ada di [`frontend/`](frontend/README.md) (React + TypeScript). Arah desain: [docs/DESIGN.md](docs/DESIGN.md).
 
 ```bash
-scripts/dev-backend.sh      # terminal 1: backend dev + data seed + provider pembayaran fake + CORS untuk :5173
+scripts/dev-backend.sh      # terminal 1: backend dev + data seed + CORS untuk :5173; pembayaran Midtrans bila kunci ada di .env, kalau tidak fake
 cd frontend && npm install && npm run dev      # terminal 2: http://localhost:5173
 ```
 
@@ -35,7 +35,7 @@ SPRING_PROFILES_ACTIVE=dev APP_PAYMENT_PROVIDER=fake ./mvnw spring-boot:run
 - Health: http://localhost:8080/actuator/health
 - Admin awal: isi `ADMIN_EMAIL` dan `ADMIN_PASSWORD` di `.env` sebelum start (dibuat sekali jika belum ada admin). Masuk lewat `/admin/masuk` di frontend atau `POST /api/admin/auth/login`.
 - `SPRING_PROFILES_ACTIVE=dev` mengisi sekitar 30 produk bertema kopi (hanya jika belum ada produk).
-- Dengan kunci Midtrans sandbox di `.env`, buang `APP_PAYMENT_PROVIDER=fake`; `/pay` akan memanggil Midtrans sungguhan.
+- Memilih provider pembayaran di `scripts/dev-backend.sh`: `APP_PAYMENT_PROVIDER` eksplisit (di `.env` atau shell) selalu menang; kalau kosong, `midtrans` bila `MIDTRANS_SERVER_KEY` dan `MIDTRANS_CLIENT_KEY` terisi, selain itu `fake`. Paksa simulasi: `APP_PAYMENT_PROVIDER=fake scripts/dev-backend.sh`. Backend mencatat `Payment provider: ...` saat start (tanpa kunci), gagal start bila `midtrans` tanpa kunci, dan halaman/endpoint simulasi hanya ada saat `fake`. Test dan CI selalu `fake`.
 
 Test (unit + integrasi dengan Testcontainers; Docker harus aktif) dan gate cakupan JaCoCo:
 

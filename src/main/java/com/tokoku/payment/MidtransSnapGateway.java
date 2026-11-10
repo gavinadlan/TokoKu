@@ -31,6 +31,8 @@ import com.tokoku.common.PaymentGatewayException;
 @ConditionalOnProperty(name = "app.payment.provider", havingValue = "midtrans", matchIfMissing = true)
 public class MidtransSnapGateway implements PaymentGateway {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(MidtransSnapGateway.class);
+
     private final String serverKey;
     private final String clientKey;
     private final String snapUrl;
@@ -46,6 +48,7 @@ public class MidtransSnapGateway implements PaymentGateway {
                             + "(or set APP_PAYMENT_PROVIDER=fake for local development without Midtrans)");
         }
         this.serverKey = serverKey;
+        log.info("Payment provider: midtrans ({}) via {}", serverKey.startsWith("SB-") || snapUrl.contains("sandbox") ? "sandbox" : "production", java.net.URI.create(snapUrl).getHost());
         this.clientKey = clientKey;
         this.snapUrl = snapUrl;
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(

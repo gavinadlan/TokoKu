@@ -19,6 +19,7 @@ public class FakePaymentGateway implements PaymentGateway {
         if (env.acceptsProfiles(Profiles.of("prod"))) {
             throw new IllegalStateException("app.payment.provider=fake is not allowed in the prod profile");
         }
+        org.slf4j.LoggerFactory.getLogger(FakePaymentGateway.class).warn("Payment provider: fake (simulasi, tanpa Midtrans)");
         byte[] random = new byte[24];
         new SecureRandom().nextBytes(random);
         this.key = HexFormat.of().formatHex(random);
