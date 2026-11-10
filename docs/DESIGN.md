@@ -172,3 +172,57 @@ Setiap komponen ditampilkan normal, hover, fokus, nonaktif, dan loading bila rel
 3. **Kode ambil:** 6 karakter dari huruf dan angka tanpa karakter membingungkan (tanpa 0/O, 1/I/L). Setuju?
 4. **Urutan foto** lewat tombol Kiri/Kanan (bukan seret-lepas). Setuju?
 5. **Select kustom** di desktop dan native di sentuh, seperti dijelaskan di R2-6. Setuju?
+
+---
+
+# Putaran 3: galeri foto di detail produk
+
+Masalah yang diperbaiki: foto terasa kecil saat produk dibuka, dan produk dengan banyak foto tidak nyaman dilihat. Screenshot sebelum dan sesudah (desktop 1440×900, ponsel 390×844, produk 1 foto dan 5 foto, plus lightbox) ada di `docs/design/round3/`, dibuat oleh `frontend/e2e/round3-shots.spec.ts` dengan foto contoh yang dirender di tempat (bukan foto produk asli). Putaran ini menggantikan butir "Galeri toko" di R2-5.
+
+## R3-1. Ukuran dan tata letak
+
+- **Rasio 4:5 di semua lebar**, sama dengan kartu katalog dan dengan potongan Cloudinary (`c_fill,ar_4:5`). Rasio 1:1 di ponsel dari Putaran 2 dihapus, karena foto 4:5 dari server terpotong lagi di kotak 1:1.
+- **Ponsel (< 640px):** foto selebar layar penuh tanpa gutter dan tanpa radius, 390×488 di layar 390 (sebelumnya 358×358). Lebar 640 sampai 1023px: galeri dibatasi 560px.
+- **Desktop (≥ 1024px):** dua kolom, galeri ±56% lebar konten (58% dari lebar setelah jarak antarkolom), kolom info mengisi sisanya, keduanya lengket. Lebar galeri dibatasi tinggi layar supaya foto 4:5 tidak pernah lebih tinggi dari area di bawah header: `--gw = min(58% × (konten − jarak), (100dvh − header − 48px) × 0,8)`. Hasilnya 668×835 di layar setinggi 950px ke atas, dan 630×788 di 1440×900 (sebelumnya 579×723).
+- **Kompromi yang disadari:** di layar setinggi 900px, foto 4:5 sudah memakai seluruh tinggi yang tersedia, jadi deret thumbnail berada tepat di bawah lipatan. Penanda "1 / 5" dan tombol panah tetap terlihat di atas foto. Bila galeri lebih tinggi dari layar, posisi lengketnya menempel ke tepi bawah supaya thumbnail tetap terjangkau.
+- **Tanpa layout shift:** kotak 4:5 memakai `aspect-ratio`, gambar diposisikan absolut di dalamnya, atribut `width`/`height` diisi, dan latar memakai nada `--tone-1` selama gambar dimuat.
+- **`object-fit: cover`** di panggung dan thumbnail (potongan tengah, sama dengan kartu). Lightbox memakai `contain` supaya gambar tidak dipotong lagi.
+
+## R3-2. Slider
+
+- **CSS scroll-snap**, tanpa pustaka carousel: lintasan `overflow-x: auto` dengan `scroll-snap-type: x mandatory`, satu foto per langkah. Geser dengan jari atau trackpad berjalan bawaan.
+- **Tombol sebelumnya/berikutnya** hanya di desktop: 44px, hairline, latar paper tembus, opasitas 0,72 dan penuh saat panggung disorot atau tombol difokus. Di ujung ditandai `aria-disabled` (bukan `disabled`, supaya fokus keyboard tidak hilang) dan dipudarkan. Tidak berputar dari foto terakhir ke pertama.
+- **Thumbnail** di bawah panggung (desktop): 64×80, foto aktif diberi bingkai ink 2px dan `aria-current`, yang lain sedikit dipudarkan. Di ponsel thumbnail dan panah disembunyikan; cukup penanda "2 / 5".
+- **Penanda posisi** "2 / 5" di sudut kanan bawah foto, `output` dengan `aria-live`.
+- **Keyboard:** panah kiri/kanan saat fokus berada di dalam galeri atau lightbox.
+- **Pindah lewat tombol, thumbnail, dan keyboard tidak dianimasikan** (MOTION 1); geser dengan jari tetap mengikuti gerak bawaan. Ini juga membuat `prefers-reduced-motion` terpenuhi tanpa cabang khusus.
+- **Urutan:** foto utama selalu pertama, sisanya mengikuti urutan admin.
+- **Satu foto:** tanpa panah, thumbnail, dan penanda. **Tanpa foto:** placeholder label kemasan di kotak dan posisi yang sama.
+
+## R3-3. Lightbox
+
+Klik foto membuka tampilan layar penuh di atas ink, dengan tombol "Tutup" (teks, bukan ikon), panah, dan penanda posisi. Memakai **`<dialog>` bawaan** seperti `ConfirmDialog`: fokus terkurung, Escape menutup, fokus kembali ke foto pemicu. Klik di luar gambar juga menutup. Radix Dialog tidak ada di project, jadi tidak ditambahkan. Navigasi di dalam lightbox tidak menggeser galeri di belakangnya, sehingga fokus kembali tepat ke foto yang tadi diklik.
+
+## R3-4. Ukuran gambar
+
+- Ukuran bernama keempat di backend: **`LARGE` 1600px** (`f_auto,q_auto,c_fill,ar_4:5,w_1600`), dikirim sebagai `largeUrl`. Dipakai lightbox dan layar rapat piksel (panggung 630 sampai 668px butuh lebih dari 960px di layar 2x).
+- `srcset` panggung: 160w, 480w, 960w, 1600w dengan `sizes="(min-width: 1024px) min(56vw, 670px), 100vw"`. Lightbox: 480w, 960w, 1600w dengan `sizes="(min-aspect-ratio: 4/5) 80vh, 100vw"`.
+- Foto pertama `loading="eager"` dan `fetchpriority="high"`; foto lain `loading="lazy"`. Gambar lightbox baru diminta saat dibuka.
+
+## R3-5. Aksesibilitas
+
+`alt` berisi nama produk dan posisi ("Kopi Gayo, foto 2 dari 5"; satu foto: nama produk saja). Tombol foto punya nama tambahan "perbesar" dan `aria-haspopup="dialog"`. Tiap slide adalah `group` dengan `aria-roledescription="slide"` dan label "2 dari 5". Hanya foto aktif yang masuk urutan Tab. Cincin fokus di lightbox memakai paper supaya terlihat di atas ink. Axe tanpa pelanggaran serious/critical untuk galeri desktop, ponsel, dan lightbox terbuka.
+
+## Kritik diri Putaran 3 (sebelum lawan sesudah) dan perbaikannya
+
+1. Versi pertama membuat galeri selebar 58% tanpa batas tinggi: foto 835px terpotong lipatan di 1440×900. Diperbaiki dengan batas tinggi layar di `--gw`.
+2. Penanda "1 / 5" semula disembunyikan di desktop karena thumbnail sudah menandai posisi. Dengan thumbnail di bawah lipatan pada layar 900px, jumlah foto jadi tidak terlihat. Penanda sekarang tampil di semua lebar.
+3. Halaman ponsel bisa digulir ke samping sejauh lima foto, karena teks khusus pembaca layar diposisikan absolut di luar lintasan. Diperbaiki, dan e2e sekarang memeriksa tidak ada overflow horizontal.
+4. Belum diperbaiki: di ponsel, lightbox menampilkan foto selebar yang sama dengan halaman (layar tegak membatasi lebar), jadi manfaatnya di ponsel kecil.
+
+## Alasan keputusan Putaran 3 (satu baris)
+
+- 4:5 di mana-mana: satu potongan untuk kartu, panggung, dan thumbnail, tanpa potong ganda.
+- Lebar dibatasi tinggi layar: foto yang utuh terlihat lebih berguna daripada foto lebih lebar yang terpotong lipatan.
+- scroll-snap dan `<dialog>` bawaan: nol dependensi baru, perilaku sentuh dan fokus dikerjakan browser.
+- `LARGE` tetap 4:5: satu rumus transformasi untuk semua ukuran, hemat kredit Cloudinary.
