@@ -63,7 +63,7 @@ export function OrdersPage() {
 
 export function OrderDetailPage() {
   const id = Number(useParams().id);
-  const order = useOrder(id);
+  const order = useOrder(id, { watch: true }); // status "siap diambil" muncul tanpa refresh
   const store = useStore();
   const payment = usePayAndRedirect();
   const cancel = useCancelOrder();

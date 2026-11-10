@@ -25,7 +25,7 @@ Admin lokal: `scripts/dev-backend.sh` membuat `admin@tokoku.local` dengan passwo
 | Perintah | Fungsi |
 | --- | --- |
 | `npm run lint` / `typecheck` / `test` / `build` | gerbang kualitas (CI menjalankan keempatnya) |
-| `npm run e2e` | Playwright terhadap backend lokal (jalankan otomatis bila belum hidup), termasuk pemeriksaan axe |
+| `npm run e2e` | Playwright terhadap backend lokal (bila belum hidup, dijalankan dengan pembayaran/foto/email `fake`; bila Anda sudah menjalankan backend dengan kunci asli, hentikan dulu atau jalankan `APP_PAYMENT_PROVIDER=fake APP_IMAGES_PROVIDER=fake APP_MAIL_ENABLED=false scripts/dev-backend.sh`), termasuk pemeriksaan axe |
 | `npm run shots` | screenshot 375/768/1280 ke `docs/design/screens/` |
 | `npm run fetch:api` | ambil `/v3/api-docs` dari backend lalu bangkitkan ulang tipe (`src/api/schema.d.ts`) |
 | `npm run gen:api` | bangkitkan tipe dari `openapi.json` yang sudah ada |

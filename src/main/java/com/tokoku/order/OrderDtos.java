@@ -40,4 +40,7 @@ public final class OrderDtos {
                             i.getQuantity(), i.getUnitPrice(), i.getSubtotal())).toList());
         }
     }
+
+    /** Ringkasan murah untuk polling layar admin. needsAction = order PAID yang belum diproses; paidSince = order yang dibayar setelah `since`. */
+    public record OrderSummaryResponse(long needsAction, long paidSince, java.time.Instant serverTime) {}
 }

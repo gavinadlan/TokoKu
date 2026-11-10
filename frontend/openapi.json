@@ -1608,6 +1608,38 @@
                 }
             }
         },
+        "/api/admin/orders/summary": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Ringkasan ringan untuk polling: jumlah order PAID dan yang dibayar sejak waktu tertentu (ADMIN)",
+                "operationId": "summary",
+                "parameters": [
+                    {
+                        "name": "since",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OrderSummaryResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/me": {
             "get": {
                 "tags": [
@@ -2709,6 +2741,28 @@
                 "required": [
                     "content",
                     "page"
+                ]
+            },
+            "OrderSummaryResponse": {
+                "type": "object",
+                "properties": {
+                    "needsAction": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "paidSince": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "serverTime": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "needsAction",
+                    "paidSince",
+                    "serverTime"
                 ]
             }
         },

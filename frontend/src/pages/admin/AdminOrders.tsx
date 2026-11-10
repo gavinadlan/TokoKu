@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useAdminOrders, useAdminOrderStatus } from '../../api/queries';
+import { useEffect, useState } from 'react';
+import { useAdminOrders, useAdminOrderStatus, useAdminOrderSummary } from '../../api/queries';
 import type { Order } from '../../api/types';
 import { FormDialog } from '../../components/FormDialog';
 import { InvoiceButtons } from '../../components/InvoiceButtons';
@@ -9,6 +9,7 @@ import { SortHeader, nextSort, type SortDir } from '../../components/SortHeader'
 import { EmptyState, ErrorState, ListSkeleton } from '../../components/States';
 import { StatusLabel } from '../../components/StatusLabel';
 import { useToast } from '../../components/Toast';
+import { agoLabel, getSeenAt, isNewSince, markSeen } from '../../lib/adminSeen';
 import { messageOf } from '../../lib/errors';
 import { formatDateTimeShort, formatRupiah } from '../../lib/format';
 import { adminNextAction, FULFILLMENT_LABEL, ORDER_STATUSES, STATUS_LABEL, type AdminAction, type Fulfillment, type OrderStatus } from '../../lib/status';
@@ -24,6 +25,20 @@ export function AdminOrdersPage() {
   const [sort, setSort] = useState<{ field: string; dir: SortDir }>({ field: 'createdAt', dir: 'desc' });
   const orders = useAdminOrders({ status: status === 'all' ? null : status, page, sort: `${sort.field},${sort.dir}` as OrderSort });
   const change = useAdminOrderStatus();
+  const summary = useAdminOrderSummary(null);
+
+  // Sorotan "baru" = dibayar setelah kunjungan terakhir; dibekukan selama halaman ini terbuka, lalu kunjungan dicatat saat pergi
+  const [seenAt] = useState(() => getSeenAt() ?? new Date().toISOString());
+  useEffect(() => {
+    window.addEventListener('pagehide', () => markSeen());
+    return () => markSeen();
+  }, []);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(t);
+  }, []);
+  const reload = () => { orders.refetch(); summary.refetch(); };
   const toast = useToast();
   const [dialog, setDialog] = useState<{ order: Order; action: AdminAction } | null>(null);
   const [courier, setCourier] = useState('');
@@ -52,6 +67,13 @@ export function AdminOrdersPage() {
         <div className="fld">
           <label htmlFor="o-status">Status</label>
           <Select id="o-status" value={status} onChange={(v) => { setStatus(v as OrderStatus | 'all'); setPage(1); }} options={[{ value: 'all', label: 'Semua status' }, ...ORDER_STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))]} />
+        </div>
+        <div className="live-meta">
+          <span role="status" aria-live="polite" className="live-count">
+            {summary.data ? (summary.data.needsAction > 0 ? `${summary.data.needsAction} order perlu diproses` : 'Tidak ada order menunggu diproses') : ''}
+          </span>
+          <span className="muted small-note">Diperbarui {orders.dataUpdatedAt ? agoLabel(orders.dataUpdatedAt, now) : '-'}</span>
+          <button type="button" className="btn ghost sm" onClick={reload} disabled={orders.isFetching}>{orders.isFetching ? 'Memuat...' : 'Muat ulang'}</button>
         </div>
       </div>
 
@@ -82,8 +104,11 @@ export function AdminOrdersPage() {
                 {orders.data.content.map((o) => {
                   const action = adminNextAction(o.status as OrderStatus, o.fulfillmentType as Fulfillment);
                   return (
-                    <tr key={o.id}>
-                      <td className="id sticky-col tnum">{String(o.id).padStart(4, '0')}</td>
+                    <tr key={o.id} className={isNewSince(o.invoicedAt, seenAt) ? 'row-new' : undefined}>
+                      <td className="id sticky-col tnum">
+                        {String(o.id).padStart(4, '0')}
+                        {isNewSince(o.invoicedAt, seenAt) && <span className="new-dot" role="img" aria-label="Baru dibayar" title="Baru dibayar" />}
+                      </td>
                       <td className="tnum muted">{formatDateTimeShort(o.createdAt)}</td>
                       <td>
                         <details>

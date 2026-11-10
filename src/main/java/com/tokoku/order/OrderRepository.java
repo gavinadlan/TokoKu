@@ -34,4 +34,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select o from Order o where o.status = com.tokoku.order.OrderStatus.PENDING_PAYMENT and o.createdAt < :cutoff order by o.id")
     List<Order> findOverdueForUpdate(@Param("cutoff") Instant cutoff, Pageable pageable);
+
+    // Polling admin: murah, memakai idx_orders_status_created dan idx_orders_invoiced_at
+    long countByStatus(OrderStatus status);
+
+    @Query("select count(o) from Order o where o.invoicedAt > :since")
+    long countPaidSince(@Param("since") Instant since);
 }

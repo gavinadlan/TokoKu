@@ -132,3 +132,12 @@
 - **Keamanan:** penerima hanya email pemilik order; nilai template di-escape; subjek hanya dari teks tetap + nomor order; log hanya memuat alamat tersamar dan nama kelas exception (pesan SMTP bisa memuat kredensial).
 - **Health:** indikator mail dimatikan agar health check tidak membuka koneksi SMTP.
 - **Belum terverifikasi:** pengiriman SMTP sungguhan ke Gmail (butuh App Password Anda); test memakai pengirim palsu. Tampilan di klien email nyata belum diperiksa.
+
+## Pembaruan otomatis layar admin dan pembeli
+
+- **Polling, bukan WebSocket/SSE:** `refetchInterval` TanStack Query 10 detik (admin) dan 15 detik (detail order pembeli, hanya selama belum selesai/batal), `refetchIntervalInBackground: false` (tab tidak aktif = berhenti) dan `refetchOnWindowFocus: true` untuk query yang dipolling (default global tetap false). Cukup untuk toko kecil, tanpa koneksi tahan lama yang tidur di Render gratis.
+- **Murah:** `GET /api/admin/orders/summary?since=` = dua COUNT: `status = PAID` (`idx_orders_status_created`) dan `invoiced_at > since` (indeks parsial baru `idx_orders_invoiced_at`, migrasi V11). Daftar order tetap satu halaman 15 baris.
+- **"Baru":** order yang dibayar (`invoicedAt`) setelah kunjungan terakhir ke halaman Order (disimpan di `localStorage`, aman gagal). Sorotan dibekukan selama halaman terbuka; kunjungan dicatat saat meninggalkan halaman (juga `pagehide`). Lencana di menu "Order" hanya tampil di luar halaman Order (di sana polling dipegang halaman itu). Kunjungan pertama: tanpa sorotan.
+- **A11y:** hitungan di `role="status"` (aria-live sopan); "Diperbarui X detik lalu" sengaja bukan live region (berubah tiap 5 detik = bising); penanda baru punya teks (`aria-label`), bukan hanya warna; tidak ada animasi baru. Tanpa suara dan popup.
+- **Tidak dibuat:** halaman detail order admin tidak ada (detail ada di baris tabel), jadi tidak ada polling terpisah untuk detail admin.
+- **e2e:** playwright memaksa provider `fake` untuk pembayaran, foto, dan email, karena `.env` lokal kini berisi kunci asli.

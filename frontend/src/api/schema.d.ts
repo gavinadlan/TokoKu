@@ -624,6 +624,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/orders/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ringkasan ringan untuk polling: jumlah order PAID dan yang dibayar sejak waktu tertentu (ADMIN) */
+        get: operations["summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/me": {
         parameters: {
             query?: never;
@@ -937,6 +954,14 @@ export interface components {
         PagedModelOrderResponse: {
             content: components["schemas"]["OrderResponse"][];
             page: components["schemas"]["PageMetadata"];
+        };
+        OrderSummaryResponse: {
+            /** Format: int64 */
+            needsAction: number;
+            /** Format: int64 */
+            paidSince: number;
+            /** Format: date-time */
+            serverTime: string;
         };
     };
     responses: never;
@@ -1976,6 +2001,28 @@ export interface operations {
                 };
                 content: {
                     "application/pdf": string;
+                };
+            };
+        };
+    };
+    summary: {
+        parameters: {
+            query?: {
+                since?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrderSummaryResponse"];
                 };
             };
         };

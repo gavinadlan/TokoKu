@@ -109,12 +109,24 @@ export function useOrders(page: number) {
   });
 }
 
-export function useOrder(id: number, opts: { poll?: boolean } = {}) {
+export const WATCH_MS = 15_000;
+export const ADMIN_POLL_MS = 10_000;
+
+/** poll: cek tiap 4 detik selama menunggu bayar. watch: cek tiap 15 detik selama order belum selesai/batal (status berubah oleh admin). */
+export function useOrder(id: number, opts: { poll?: boolean; watch?: boolean } = {}) {
   const { status } = useAuth();
   return useQuery({
     queryKey: ['order', id],
     enabled: status === 'authenticated' && Number.isFinite(id),
-    refetchInterval: (q) => (opts.poll && q.state.data?.status === 'PENDING_PAYMENT' ? 4000 : false),
+    refetchInterval: (q) => {
+      const s = q.state.data?.status;
+      if (opts.poll && s === 'PENDING_PAYMENT') return 4000;
+      if (opts.watch && s && s !== 'COMPLETED' && s !== 'CANCELLED') return WATCH_MS;
+      return false;
+    },
+    refetchIntervalInBackground: false, // tab tidak aktif = tidak polling
+    refetchOnWindowFocus: !!opts.watch,
+    staleTime: opts.watch ? 5_000 : undefined,
     queryFn: () => call(() => api.GET('/api/orders/{id}', { params: { path: { id } } })),
   });
 }
@@ -222,8 +234,26 @@ export function useAdminOrders(p: { status: OrderStatus | null; page: number; so
     queryKey: ['admin', 'orders', p],
     enabled,
     placeholderData: keepPreviousData,
+    refetchInterval: ADMIN_POLL_MS,
+    refetchIntervalInBackground: false, // tab tidak aktif = berhenti; fokus kembali = ambil ulang
+    refetchOnWindowFocus: true,
+    staleTime: 5_000,
     queryFn: () =>
       callAdmin(() => adminApi.GET('/api/admin/orders', { params: { query: { status: p.status ?? undefined, page: p.page - 1, size: 15, sort: [p.sort] } } })),
+  });
+}
+
+/** Ringan: dua COUNT berindeks. since = waktu kunjungan terakhir ke halaman Order (ISO) atau null. */
+export function useAdminOrderSummary(since: string | null, active = true) {
+  const enabled = useAdminEnabled() && active;
+  return useQuery({
+    queryKey: ['admin', 'order-summary', since],
+    enabled,
+    refetchInterval: ADMIN_POLL_MS,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    staleTime: 5_000,
+    queryFn: () => callAdmin(() => adminApi.GET('/api/admin/orders/summary', { params: { query: since ? { since } : {} } })),
   });
 }
 
@@ -239,7 +269,7 @@ export function useAdminOrderStatus() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, ...body }: AdminStatusChange) => callAdmin(() => adminApi.PATCH('/api/admin/orders/{id}/status', { params: { path: { id } }, body })),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'orders'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin', 'orders'] }); qc.invalidateQueries({ queryKey: ['admin', 'order-summary'] }); },
   });
 }
 

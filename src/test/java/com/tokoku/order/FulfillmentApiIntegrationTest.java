@@ -220,4 +220,25 @@ class FulfillmentApiIntegrationTest extends ApiTestBase {
                 "{\"name\":\"TokoKu\",\"address\":\"Jl. Contoh No. 1\",\"phone\":\"0800\",\"deliveryEnabled\":true,\"pickupEnabled\":true,\"flatShippingFee\":12000,\"freeShippingThreshold\":300000,\"invoiceFooter\":\"Terima kasih\",\"taxId\":\"12.345\"}")
                 .andExpect(status().isOk()).andExpect(jsonPath("$.configured").value(true)).andExpect(jsonPath("$.taxId").value("12.345"));
     }
+
+    @Test
+    void adminSummaryCountsPaidOrdersAndRequiresAdmin() throws Exception {
+        String user = userToken();
+        send(get("/api/admin/orders/summary"), user, null).andExpect(status().isForbidden());
+        send(get("/api/admin/orders/summary"), null, null).andExpect(status().isUnauthorized());
+
+        String admin = adminToken();
+        java.time.Instant before = java.time.Instant.now().minusSeconds(1);
+        int paidBefore = ((Number) JsonPath.read(send(get("/api/admin/orders/summary"), admin, null).andReturn().getResponse().getContentAsString(), "$.needsAction")).intValue();
+        long id = order(user, product(10, "40000"), 1, "DELIVERY");
+        settle(user, id);
+
+        var body = JsonPath.parse(send(get("/api/admin/orders/summary").param("since", before.toString()), admin, null)
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        assertThat(body.read("$.needsAction", Integer.class)).isEqualTo(paidBefore + 1);
+        assertThat(body.read("$.paidSince", Integer.class)).isGreaterThanOrEqualTo(1);
+        var future = JsonPath.parse(send(get("/api/admin/orders/summary").param("since", java.time.Instant.now().plusSeconds(60).toString()), admin, null)
+                .andReturn().getResponse().getContentAsString());
+        assertThat(future.read("$.paidSince", Integer.class)).isZero();
+    }
 }

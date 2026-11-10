@@ -8,7 +8,11 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 [ -f .env ] || { echo "Buat .env dari .env.example dulu (butuh DB_PASSWORD dan JWT_SECRET)"; exit 1; }
+# Nilai yang diberikan lewat shell (mis. APP_PAYMENT_PROVIDER=fake APP_MAIL_ENABLED=false scripts/dev-backend.sh) menang atas .env
+_pp="${APP_PAYMENT_PROVIDER-}"; _me="${APP_MAIL_ENABLED-}"
 set -a; source .env; set +a
+[ -z "$_pp" ] || export APP_PAYMENT_PROVIDER="$_pp"
+[ -z "$_me" ] || export APP_MAIL_ENABLED="$_me"
 
 if [ -z "${JAVA_HOME:-}" ] && [ -d /opt/homebrew/opt/openjdk@21 ]; then
   export JAVA_HOME=/opt/homebrew/opt/openjdk@21 PATH=/opt/homebrew/opt/openjdk@21/bin:$PATH

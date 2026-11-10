@@ -1,7 +1,8 @@
 import { Navigate, NavLink, Outlet, ScrollRestoration, useLocation } from 'react-router';
-import { useAdminStoreSettings } from '../../api/queries';
+import { useAdminOrderSummary, useAdminStoreSettings } from '../../api/queries';
 import { useAdminAuth } from '../../auth/AdminAuthContext';
 import { decideAccess } from '../../auth/guard';
+import { getSeenAt } from '../../lib/adminSeen';
 import { RouteFocus } from '../../components/RouteFocus';
 import { ListSkeleton } from '../../components/States';
 
@@ -14,6 +15,11 @@ export function AdminShell() {
   const location = useLocation();
   const decision = decideAccess(status, user, 'ADMIN');
   const store = useAdminStoreSettings();
+  // Lencana "Order": pesanan dibayar sejak kunjungan terakhir. Di halaman Order polling dipegang halaman itu sendiri.
+  const onOrders = location.pathname.startsWith('/admin/order');
+  const seenAt = getSeenAt();
+  const summary = useAdminOrderSummary(seenAt, !onOrders && seenAt !== null);
+  const fresh = !onOrders && seenAt ? summary.data?.paidSince ?? 0 : 0;
 
   if (decision === 'wait') return <div className="adm" style={{ minHeight: '100vh', padding: 'var(--s-7) var(--gutter)' }}><ListSkeleton /></div>;
   if (decision !== 'allow') return <Navigate to="/admin/masuk" replace state={{ from: location.pathname + location.search }} />;
@@ -31,7 +37,17 @@ export function AdminShell() {
         <nav aria-label="Kelola toko">
           <NavLink to="/admin/produk">Produk</NavLink>
           <NavLink to="/admin/kategori">Kategori</NavLink>
-          <NavLink to="/admin/order">Order</NavLink>
+          <NavLink to="/admin/order">
+            Order
+            <span role="status" aria-live="polite" className="nav-badge-wrap">
+              {fresh > 0 && (
+                <>
+                  <span className="nav-badge" aria-hidden="true">{fresh}</span>
+                  <span className="sr-only"> {fresh} order baru dibayar</span>
+                </>
+              )}
+            </span>
+          </NavLink>
           <NavLink to="/admin/pengaturan">Pengaturan toko</NavLink>
         </nav>
         <div className="who">

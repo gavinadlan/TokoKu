@@ -185,6 +185,12 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
+    public OrderSummaryResponse summary(Instant since) {
+        long paidSince = since == null ? 0 : orders.countPaidSince(since);
+        return new OrderSummaryResponse(orders.countByStatus(OrderStatus.PAID), paidSince, Instant.now());
+    }
+
+    @Transactional(readOnly = true)
     public OrderResponse getAny(Long orderId) {
         return OrderResponse.from(orders.findById(orderId).orElseThrow(() -> new NotFoundException("Order " + orderId + " not found")));
     }

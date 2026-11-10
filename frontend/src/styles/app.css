@@ -488,3 +488,10 @@ main h1[tabindex="-1"]:focus, #konten:focus { outline: none; } /* fokus programa
   .adm .ctl { height: 40px; }
   .adm .toolrow .sel-trigger { min-height: 40px; }
 }
+
+/* ---------- pembaruan otomatis (admin) ---------- */
+.live-meta { margin-left: auto; display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
+.live-count { font-size: var(--text-sm); font-weight: 500; }
+.tbl tr.row-new td { background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+.new-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-left: var(--s-2); vertical-align: middle; }
+.rail nav a .nav-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; margin-left: var(--s-2); border-radius: 10px; background: var(--paper); color: var(--rail); font-size: var(--text-xs); font-weight: 600; }
