@@ -12,50 +12,56 @@ public class ProductService {
 
     private final ProductRepository products;
     private final CategoryRepository categories;
+    private final ProductImageUrls urls;
 
-    public ProductService(ProductRepository products, CategoryRepository categories) {
+    public ProductService(ProductRepository products, CategoryRepository categories, ProductImageUrls urls) {
         this.products = products;
         this.categories = categories;
+        this.urls = urls;
     }
 
     @Transactional(readOnly = true)
     public Page<ProductResponse> search(String q, Long categoryId, Pageable pageable) {
         String pattern = "%" + (q == null ? "" : q.trim().toLowerCase()) + "%";
-        return products.search(pattern, categoryId, pageable).map(ProductResponse::from);
+        return products.search(pattern, categoryId, pageable).map(p -> ProductResponse.from(p, urls));
     }
 
     @Transactional(readOnly = true)
     public Page<ProductResponse> searchAll(String q, Long categoryId, Boolean active, Pageable pageable) {
         String pattern = "%" + (q == null ? "" : q.trim().toLowerCase()) + "%";
-        return products.searchAll(pattern, categoryId, active, pageable).map(ProductResponse::from);
+        return products.searchAll(pattern, categoryId, active, pageable).map(p -> ProductResponse.from(p, urls));
+    }
+
+    @Transactional(readOnly = true)
+    public ProductResponse getAny(Long id) {
+        return ProductResponse.from(products.findById(id).orElseThrow(() -> notFound(id)), urls);
     }
 
     @Transactional(readOnly = true)
     public ProductResponse get(Long id) {
-        return ProductResponse.from(products.findByIdAndActiveTrue(id).orElseThrow(() -> notFound(id)));
+        return ProductResponse.from(products.findByIdAndActiveTrue(id).orElseThrow(() -> notFound(id)), urls);
     }
 
     // @Transactional: semua langkah dalam method = satu transaksi DB, commit bersama atau rollback bersama
     @Transactional
     public ProductResponse create(ProductRequest r) {
         Product p = new Product(category(r.categoryId()), r.name(), r.description(), r.price(), r.stock());
-        p.update(p.getCategory(), r.name(), r.description(), r.price(), r.imageUrl());
-        return ProductResponse.from(products.save(p));
+        return ProductResponse.from(products.save(p), urls);
     }
 
     @Transactional
     public ProductResponse update(Long id, ProductRequest r) {
         Product p = products.findById(id).orElseThrow(() -> notFound(id));
-        p.update(category(r.categoryId()), r.name(), r.description(), r.price(), r.imageUrl());
+        p.update(category(r.categoryId()), r.name(), r.description(), r.price());
         p.setStock(r.stock());
-        return ProductResponse.from(p); // entity managed: perubahan otomatis di-flush saat commit
+        return ProductResponse.from(p, urls); // entity managed: perubahan otomatis di-flush saat commit
     }
 
     @Transactional
     public ProductResponse updateStock(Long id, int stock) {
         Product p = products.findById(id).orElseThrow(() -> notFound(id));
         p.setStock(stock);
-        return ProductResponse.from(p);
+        return ProductResponse.from(p, urls);
     }
 
     // Soft delete: baris tetap ada (order lama nanti masih merujuk produk ini)

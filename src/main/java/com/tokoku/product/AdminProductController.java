@@ -28,4 +28,10 @@ public class AdminProductController {
             @PageableDefault(size = 20, sort = "id") @ParameterObject Pageable pageable) {
         return service.searchAll(q, category, active, pageable);
     }
+
+    @Operation(summary = "Detail produk apa pun termasuk nonaktif, lengkap dengan foto (ADMIN)")
+    @GetMapping("/{id}")
+    public ProductResponse get(@PathVariable Long id) {
+        return service.getAny(id);
+    }
 }

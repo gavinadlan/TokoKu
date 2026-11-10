@@ -54,31 +54,4 @@ class CatalogAdminIntegrationTest extends ApiTestBase {
         send(delete("/api/products/" + p.getId()), admin, null).andExpect(status().isNoContent()); // nonaktif, baris tetap ada
         send(delete("/api/categories/" + catId), admin, null).andExpect(status().isConflict());
     }
-
-    @Test
-    void imageUrlRoundTripsThroughProductAndCart() throws Exception {
-        String admin = adminToken();
-        int cat = newCategory(admin);
-        String url = "https://cdn.example.com/kopi.jpg";
-        String created = send(post("/api/products"), admin,
-                "{\"categoryId\":%d,\"name\":\"Kopi\",\"price\":1000,\"stock\":3,\"imageUrl\":\"%s\"}".formatted(cat, url))
-                .andExpect(status().isCreated()).andExpect(jsonPath("$.imageUrl").value(url)).andReturn().getResponse().getContentAsString();
-        int id = JsonPath.read(created, "$.id");
-
-        send(get("/api/products/" + id), null, null).andExpect(jsonPath("$.imageUrl").value(url));
-
-        String url2 = "http://img.example.com/baru.png";
-        send(put("/api/products/" + id), admin, "{\"categoryId\":%d,\"name\":\"Kopi\",\"price\":1000,\"stock\":3,\"imageUrl\":\"%s\"}".formatted(cat, url2))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.imageUrl").value(url2));
-
-        String user = userToken();
-        addToCart(user, id, 1);
-        send(get("/api/cart"), user, null).andExpect(jsonPath("$.items[0].imageUrl").value(url2));
-
-        // tanpa imageUrl = null; bukan URL = 400
-        send(put("/api/products/" + id), admin, "{\"categoryId\":%d,\"name\":\"Kopi\",\"price\":1000,\"stock\":3}".formatted(cat))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.imageUrl").isEmpty());
-        send(post("/api/products"), admin, "{\"categoryId\":%d,\"name\":\"Kopi\",\"price\":1000,\"stock\":3,\"imageUrl\":\"javascript:alert(1)\"}".formatted(cat))
-                .andExpect(status().isBadRequest());
-    }
 }

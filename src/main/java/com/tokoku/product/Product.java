@@ -32,8 +32,10 @@ public class Product {
 
     // Optimistic locking: Hibernate menaikkan version tiap update. Jika dua request mengubah
     // baris yang sama bersamaan, yang kedua gagal (409) sehingga stok tidak saling menimpa.
-    @Column(name = "image_url")
-    private String imageUrl;
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("position ASC, id ASC")
+    @org.hibernate.annotations.BatchSize(size = 50)
+    private java.util.List<ProductImage> images = new java.util.ArrayList<>();
 
     @Version
     private Long version;
@@ -41,12 +43,11 @@ public class Product {
     protected Product() {}
 
     public Product(Category category, String name, String description, BigDecimal price, int stock) {
-        update(category, name, description, price, null);
+        update(category, name, description, price);
         setStock(stock);
     }
 
-    public void update(Category category, String name, String description, BigDecimal price, String imageUrl) {
-        this.imageUrl = imageUrl;
+    public void update(Category category, String name, String description, BigDecimal price) {
         this.category = category;
         this.name = name;
         this.description = description;
@@ -69,5 +70,5 @@ public class Product {
     public BigDecimal getPrice() { return price; }
     public int getStock() { return stock; }
     public boolean isActive() { return active; }
-    public String getImageUrl() { return imageUrl; }
+    public java.util.List<ProductImage> getImages() { return images; }
 }

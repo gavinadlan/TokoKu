@@ -44,6 +44,7 @@ public class OpenApiConfig {
     // menganggap semua field respons opsional. Di sini semua field respons ditandai required, kecuali yang memang boleh null.
     private static final Map<String, Set<String>> NULLABLE = Map.of(
             "ProductResponse", Set.of("description", "imageUrl"),
+            "ProductImageResponse", Set.of("width", "height"),
             "CartItemResponse", Set.of("imageUrl"),
             "PayResponse", Set.of("clientKey"),
             "OrderResponse", Set.of("shippingAddress", "courier", "trackingNumber", "pickupCode", "pickupReadyAt"));

@@ -24,7 +24,7 @@ import com.tokoku.product.Product;
 import com.tokoku.product.ProductRepository;
 
 // Dasar test integrasi: satu context + satu container Postgres dipakai bersama semua subclass
-@SpringBootTest(properties = { "app.payment.provider=fake", "app.ratelimit.login.per-email=50", "app.ratelimit.login.per-ip=100000",
+@SpringBootTest(properties = { "app.payment.provider=fake", "app.images.provider=fake", "app.ratelimit.login.per-email=50", "app.ratelimit.login.per-ip=100000",
         "app.ratelimit.admin-login.per-email=1000", "app.ratelimit.admin-login.per-ip=100000" })
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)

@@ -10,6 +10,7 @@ import com.tokoku.cart.CartDtos.*;
 import com.tokoku.common.ConflictException;
 import com.tokoku.common.NotFoundException;
 import com.tokoku.product.Product;
+import com.tokoku.product.ProductImageUrls;
 import com.tokoku.product.ProductRepository;
 
 @Service
@@ -18,8 +19,10 @@ public class CartService {
     private final CartRepository carts;
     private final CartItemRepository items;
     private final ProductRepository products;
+    private final ProductImageUrls urls;
 
-    public CartService(CartRepository carts, CartItemRepository items, ProductRepository products) {
+    public CartService(CartRepository carts, CartItemRepository items, ProductRepository products, ProductImageUrls urls) {
+        this.urls = urls;
         this.carts = carts;
         this.items = items;
         this.products = products;
@@ -80,7 +83,7 @@ public class CartService {
         List<CartItemResponse> list = items.findAllWithProduct(cart.getId()).stream().map(i -> {
             Product p = i.getProduct();
             BigDecimal subtotal = p.getPrice().multiply(BigDecimal.valueOf(i.getQuantity()));
-            return new CartItemResponse(i.getId(), p.getId(), p.getCategory().getId(), p.getName(), p.getImageUrl(), p.getPrice(),
+            return new CartItemResponse(i.getId(), p.getId(), p.getCategory().getId(), p.getName(), urls.primaryThumbnail(p), p.getPrice(),
                     i.getQuantity(), subtotal, p.getStock());
         }).toList();
         BigDecimal total = list.stream().map(CartItemResponse::subtotal).reduce(BigDecimal.ZERO, BigDecimal::add);

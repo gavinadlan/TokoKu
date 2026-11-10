@@ -29,7 +29,15 @@ export SPRING_PROFILES_ACTIVE=dev
 export APP_PAYMENT_PROVIDER="${APP_PAYMENT_PROVIDER:-fake}"
 # Dev lokal: batas login dilonggarkan (e2e masuk berkali-kali dari satu IP). Default backend tetap 5/menit per email dan 30/menit per IP.
 export APP_RATELIMIT_LOGIN_PER_EMAIL="${APP_RATELIMIT_LOGIN_PER_EMAIL:-1000}" APP_RATELIMIT_LOGIN_PER_IP="${APP_RATELIMIT_LOGIN_PER_IP:-1000}"
+# Foto produk: Cloudinary bila kunci ada di .env, kalau tidak provider fake (unggahan diterima server dev)
+if [ -z "${APP_IMAGES_PROVIDER:-}" ]; then
+  if [ -n "${CLOUDINARY_CLOUD_NAME:-}" ] && [ -n "${CLOUDINARY_API_KEY:-}" ] && [ -n "${CLOUDINARY_API_SECRET:-}" ]; then
+    export APP_IMAGES_PROVIDER=cloudinary
+  else
+    export APP_IMAGES_PROVIDER=fake
+  fi
+fi
 export APP_CORS_ALLOWED_ORIGINS="${FRONTEND_ORIGIN:-http://localhost:5173}"
 
-echo "Backend: http://localhost:8080  (provider pembayaran: $APP_PAYMENT_PROVIDER, admin: $ADMIN_EMAIL, password di .dev-admin.env)"
+echo "Backend: http://localhost:8080  (pembayaran: $APP_PAYMENT_PROVIDER, foto: $APP_IMAGES_PROVIDER, admin: $ADMIN_EMAIL, password di .dev-admin.env)"
 exec ./mvnw -B -q spring-boot:run
