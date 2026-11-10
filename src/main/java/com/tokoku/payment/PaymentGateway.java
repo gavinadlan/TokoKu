@@ -22,5 +22,5 @@ public interface PaymentGateway {
     record PaymentSession(String token, String redirectUrl) {}
 
     record Notification(String orderId, String statusCode, String grossAmount, String signatureKey,
-            String transactionStatus, String fraudStatus, String transactionId) {}
+            String transactionStatus, String fraudStatus, String transactionId, String paymentType) {}
 }

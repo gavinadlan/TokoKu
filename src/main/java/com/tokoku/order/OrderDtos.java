@@ -29,13 +29,13 @@ public final class OrderDtos {
     public record OrderResponse(Long id, Long userId, OrderStatus status, FulfillmentType fulfillmentType,
             BigDecimal subtotal, BigDecimal shippingFee, BigDecimal totalAmount, String shippingName,
             String shippingPhone, String shippingAddress, String courier, String trackingNumber, String pickupCode,
-            Instant pickupReadyAt, Instant createdAt, List<OrderItemResponse> items) {
+            Instant pickupReadyAt, String invoiceNumber, Instant invoicedAt, Instant createdAt, List<OrderItemResponse> items) {
 
         static OrderResponse from(Order o) {
             return new OrderResponse(o.getId(), o.getUserId(), o.getStatus(), o.getFulfillmentType(), o.getSubtotal(),
                     o.getShippingFee(), o.getTotalAmount(), o.getShippingName(),
                     o.getShippingPhone(), o.getShippingAddress(), o.getCourier(), o.getTrackingNumber(), o.getPickupCode(),
-                    o.getPickupReadyAt(), o.getCreatedAt(),
+                    o.getPickupReadyAt(), o.getInvoiceNumber(), o.getInvoicedAt(), o.getCreatedAt(),
                     o.getItems().stream().map(i -> new OrderItemResponse(i.getProductId(), i.getProductName(),
                             i.getQuantity(), i.getUnitPrice(), i.getSubtotal())).toList());
         }

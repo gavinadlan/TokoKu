@@ -56,6 +56,12 @@ public class Order {
     @Column(name = "pickup_ready_at")
     private Instant pickupReadyAt;
 
+    @Column(name = "invoice_number")
+    private String invoiceNumber;
+
+    @Column(name = "invoiced_at")
+    private Instant invoicedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -99,6 +105,14 @@ public class Order {
 
     public void assignPickupCode(String code) { this.pickupCode = code; }
 
+    /** Idempoten: nomor invoice hanya diberikan sekali. */
+    public void assignInvoice(String number, Instant at) {
+        if (invoiceNumber == null) {
+            invoiceNumber = number;
+            invoicedAt = at;
+        }
+    }
+
     public boolean pickupCodeMatches(String input) {
         return pickupCode != null && pickupCode.equals(PickupCodes.normalize(input));
     }
@@ -128,6 +142,8 @@ public class Order {
     public String getTrackingNumber() { return trackingNumber; }
     public String getPickupCode() { return pickupCode; }
     public Instant getPickupReadyAt() { return pickupReadyAt; }
+    public String getInvoiceNumber() { return invoiceNumber; }
+    public Instant getInvoicedAt() { return invoicedAt; }
     public Instant getCreatedAt() { return createdAt; }
     public List<OrderItem> getItems() { return items; }
 }

@@ -37,6 +37,6 @@ public class FakePaymentGateway implements PaymentGateway {
     /** Membuat notifikasi bertanda tangan sah, seperti yang akan dikirim provider. */
     public Notification signedNotification(String providerRef, String statusCode, String grossAmount, String transactionStatus) {
         return new Notification(providerRef, statusCode, grossAmount,
-                MidtransSignature.compute(providerRef, statusCode, grossAmount, key), transactionStatus, null, "fake-tx-" + providerRef);
+                MidtransSignature.compute(providerRef, statusCode, grossAmount, key), transactionStatus, null, "fake-tx-" + providerRef, "fake");
     }
 }

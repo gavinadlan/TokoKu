@@ -34,6 +34,9 @@ public class Payment {
     @Column(name = "paid_at")
     private Instant paidAt;
 
+    @Column(name = "payment_type")
+    private String paymentType;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -47,9 +50,10 @@ public class Payment {
         this.redirectUrl = redirectUrl;
     }
 
-    public void markPaid() {
+    public void markPaid(String paymentType) {
         status = PaymentStatus.PAID;
         paidAt = Instant.now();
+        this.paymentType = paymentType;
     }
 
     public void markEnded(PaymentStatus ended) { status = ended; }
@@ -64,4 +68,5 @@ public class Payment {
     public String getToken() { return token; }
     public String getRedirectUrl() { return redirectUrl; }
     public Instant getPaidAt() { return paidAt; }
+    public String getPaymentType() { return paymentType; }
 }

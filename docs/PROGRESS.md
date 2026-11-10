@@ -39,3 +39,4 @@ CRUD produk dan kategori, Flyway V1, Docker, CI. 9 test.
 
 ## Putaran 2 (branch `upgrade`)
 - Tahap A selesai: addendum desain "Putaran 2" di `docs/DESIGN.md`, 11 mock HTML dan 22 screenshot di `docs/design/round2/`. Menunggu persetujuan sebelum Tahap B.
+- Tahap B selesai (backend): B1 realm admin/toko, B2 pengambilan + ongkir + pengaturan toko, B3 foto produk (Cloudinary + fake), B4 invoice PDF. `./mvnw -B verify` hijau, 134 test, gate JaCoCo lolos. Cloudinary nyata belum diuji (tidak ada kunci).

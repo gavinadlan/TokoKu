@@ -47,7 +47,7 @@ public class OpenApiConfig {
             "ProductImageResponse", Set.of("width", "height"),
             "CartItemResponse", Set.of("imageUrl"),
             "PayResponse", Set.of("clientKey"),
-            "OrderResponse", Set.of("shippingAddress", "courier", "trackingNumber", "pickupCode", "pickupReadyAt"));
+            "OrderResponse", Set.of("shippingAddress", "courier", "trackingNumber", "pickupCode", "pickupReadyAt", "invoiceNumber", "invoicedAt"));
 
     @Bean
     OpenApiCustomizer responseFieldsRequired() {

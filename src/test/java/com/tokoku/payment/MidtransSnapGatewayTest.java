@@ -121,8 +121,8 @@ class MidtransSnapGatewayTest {
         assertThat(MidtransSignature.compute("ORDER-101", "200", "1000.00", SERVER_KEY)).isEqualTo(expected);
 
         var gw = gateway();
-        assertThat(gw.verifySignature(new Notification("ORDER-101", "200", "1000.00", expected, "settlement", null, "t"))).isTrue();
-        assertThat(gw.verifySignature(new Notification("ORDER-101", "200", "1000.01", expected, "settlement", null, "t"))).isFalse();
-        assertThat(gw.verifySignature(new Notification("ORDER-101", "200", "1000.00", null, "settlement", null, "t"))).isFalse();
+        assertThat(gw.verifySignature(new Notification("ORDER-101", "200", "1000.00", expected, "settlement", null, "t", null))).isTrue();
+        assertThat(gw.verifySignature(new Notification("ORDER-101", "200", "1000.01", expected, "settlement", null, "t", null))).isFalse();
+        assertThat(gw.verifySignature(new Notification("ORDER-101", "200", "1000.00", null, "settlement", null, "t", null))).isFalse();
     }
 }

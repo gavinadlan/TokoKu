@@ -110,10 +110,10 @@ class PaymentApiIntegrationTest extends ApiTestBase {
         String ref = payRef(f);
         Notification good = gateway.signedNotification(ref, "200", gross(f, 1), "settlement");
         Notification forged = new Notification(good.orderId(), good.statusCode(), good.grossAmount(),
-                "0".repeat(128), good.transactionStatus(), null, "tx");
+                "0".repeat(128), good.transactionStatus(), null, "tx", null);
 
         webhook(forged).andExpect(status().isForbidden());
-        webhook(new Notification(ref, "200", gross(f, 1), null, "settlement", null, "tx")).andExpect(status().isForbidden());
+        webhook(new Notification(ref, "200", gross(f, 1), null, "settlement", null, "tx", null)).andExpect(status().isForbidden());
 
         assertThat(orderStatus(f)).isEqualTo("PENDING_PAYMENT");
         assertThat(payments.findByProviderRef(ref).orElseThrow().getStatus()).isEqualTo(PaymentStatus.PENDING);

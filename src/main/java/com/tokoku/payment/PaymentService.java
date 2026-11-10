@@ -1,6 +1,7 @@
 package com.tokoku.payment;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,9 +39,12 @@ public class PaymentService {
     private final UserRepository users;
     private final PaymentGateway gateway;
     private final int expiryMinutes;
+    private final com.tokoku.invoice.InvoiceNumberService invoiceNumbers;
 
     public PaymentService(PaymentRepository payments, OrderRepository orders, OrderService orderService,
-            UserRepository users, PaymentGateway gateway, @Value("${app.order.expiry-minutes:60}") int expiryMinutes) {
+            UserRepository users, PaymentGateway gateway, @Value("${app.order.expiry-minutes:60}") int expiryMinutes,
+            com.tokoku.invoice.InvoiceNumberService invoiceNumbers) {
+        this.invoiceNumbers = invoiceNumbers;
         this.payments = payments;
         this.orders = orders;
         this.orderService = orderService;
@@ -100,7 +104,7 @@ public class PaymentService {
         boolean success = status.equals("settlement")
                 || (status.equals("capture") && (n.fraudStatus() == null || n.fraudStatus().equals("accept")));
         if (success) {
-            onSuccess(payment, order);
+            onSuccess(payment, order, n.paymentType());
         } else if (status.equals("expire")) {
             onFailure(payment, order, PaymentStatus.EXPIRED);
         } else if (status.equals("deny") || status.equals("cancel") || status.equals("failure")) {
@@ -109,10 +113,11 @@ public class PaymentService {
         // pending / authorize / refund, dll: abaikan, tidak ada perubahan
     }
 
-    private void onSuccess(Payment payment, Order order) {
-        payment.markPaid();
+    private void onSuccess(Payment payment, Order order, String paymentType) {
+        payment.markPaid(paymentType);
         if (order.getStatus() == OrderStatus.PENDING_PAYMENT) {
             order.transitionTo(OrderStatus.PAID);
+            order.assignInvoice(invoiceNumbers.next(), Instant.now()); // idempoten: webhook ganda berhenti di cek status payment
             if (order.getFulfillmentType() == FulfillmentType.PICKUP && order.getPickupCode() == null) {
                 order.assignPickupCode(PickupCodes.generate()); // kode ambil dibuat saat order dibayar
             }

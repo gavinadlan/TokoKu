@@ -29,7 +29,7 @@ class PaymentServiceItemsTest {
         OrderRepository orders = mock(OrderRepository.class);
         UserRepository users = mock(UserRepository.class);
         PaymentGateway gateway = mock(PaymentGateway.class);
-        PaymentService service = new PaymentService(payments, orders, mock(OrderService.class), users, gateway, 60);
+        PaymentService service = new PaymentService(payments, orders, mock(OrderService.class), users, gateway, 60, mock(com.tokoku.invoice.InvoiceNumberService.class));
 
         Order order = new Order(7L, FulfillmentType.DELIVERY, "Budi", "0812", "Jl. Kopi No. 12, Jakarta");
         order.addItem(1L, "Kopi Arabika Gayo 250g", 2, new BigDecimal("85000"));
@@ -58,7 +58,7 @@ class PaymentServiceItemsTest {
         OrderRepository orders = mock(OrderRepository.class);
         UserRepository users = mock(UserRepository.class);
         PaymentGateway gateway = mock(PaymentGateway.class);
-        PaymentService service = new PaymentService(payments, orders, mock(OrderService.class), users, gateway, 60);
+        PaymentService service = new PaymentService(payments, orders, mock(OrderService.class), users, gateway, 60, mock(com.tokoku.invoice.InvoiceNumberService.class));
 
         Order order = new Order(7L, FulfillmentType.PICKUP, "Budi", "0812", null);
         order.addItem(1L, "Kopi", 1, new BigDecimal("50000"));
