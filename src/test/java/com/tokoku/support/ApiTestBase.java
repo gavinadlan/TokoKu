@@ -24,7 +24,8 @@ import com.tokoku.product.Product;
 import com.tokoku.product.ProductRepository;
 
 // Dasar test integrasi: satu context + satu container Postgres dipakai bersama semua subclass
-@SpringBootTest(properties = { "app.payment.provider=fake", "app.ratelimit.login.per-email=50", "app.ratelimit.login.per-ip=100000" })
+@SpringBootTest(properties = { "app.payment.provider=fake", "app.ratelimit.login.per-email=50", "app.ratelimit.login.per-ip=100000",
+        "app.ratelimit.admin-login.per-email=1000", "app.ratelimit.admin-login.per-ip=100000" })
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 public abstract class ApiTestBase {
@@ -63,11 +64,18 @@ public abstract class ApiTestBase {
         return login(email, PASSWORD);
     }
 
-    /** Membuat admin langsung di DB (register selalu USER) lalu login. */
+    /** Membuat admin langsung di DB (register selalu USER) lalu login lewat endpoint admin. */
     protected String adminToken() throws Exception {
         String email = uniqueEmail();
         users.save(new User(email, encoder.encode(PASSWORD), "Admin", Role.ADMIN));
-        return login(email, PASSWORD);
+        return adminLogin(email, PASSWORD);
+    }
+
+    protected String adminLogin(String email, String password) throws Exception {
+        String body = mvc.perform(post("/api/admin/auth/login").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"%s\",\"password\":\"%s\"}".formatted(email, password)))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        return JsonPath.read(body, "$.accessToken");
     }
 
     /** Produk baru langsung di DB (kategori unik) supaya tiap test punya data sendiri. */

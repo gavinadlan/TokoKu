@@ -20,7 +20,8 @@ public class AuthController {
     private final RefreshTokenService refreshTokens;
     private final LoginRateLimiter rateLimiter;
 
-    public AuthController(AuthService service, RefreshTokenService refreshTokens, LoginRateLimiter rateLimiter) {
+    public AuthController(AuthService service, RefreshTokenService refreshTokens,
+            @org.springframework.beans.factory.annotation.Qualifier("storeLoginLimiter") LoginRateLimiter rateLimiter) {
         this.service = service;
         this.refreshTokens = refreshTokens;
         this.rateLimiter = rateLimiter;
@@ -46,7 +47,7 @@ public class AuthController {
     @SecurityRequirements
     @PostMapping("/refresh")
     public TokenResponse refresh(@Valid @RequestBody RefreshRequest request) {
-        return refreshTokens.refresh(request.refreshToken());
+        return refreshTokens.refresh(request.refreshToken(), Realm.STORE);
     }
 
     @Operation(summary = "Logout: cabut refresh token (idempoten)")
@@ -54,7 +55,7 @@ public class AuthController {
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(@Valid @RequestBody RefreshRequest request) {
-        refreshTokens.revoke(request.refreshToken());
+        refreshTokens.revoke(request.refreshToken(), Realm.STORE);
     }
 
     @Operation(summary = "Ganti password; mencabut semua refresh token")
