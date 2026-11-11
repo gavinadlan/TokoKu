@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import type { ProductImage } from '../api/types';
 import { srcSetOf } from './ProductVisual';
+import { ZoomImage } from './ZoomImage';
 
-// Lebar tampil panggung: kolom galeri ±58% dari konten 1200px di desktop, selebar layar di ponsel.
-const STAGE_SIZES = '(min-width: 1024px) min(56vw, 670px), 100vw';
-// Lightbox: gambar 4:5 dibatasi tinggi layar, jadi lebarnya 80vh kecuali di layar tegak.
-const ZOOM_SIZES = '(min-aspect-ratio: 4/5) 80vh, 100vw';
+// Lebar tampil panggung: kolom galeri ±58% dari konten 1200px di desktop (dikurangi kolom thumbnail 84px), selebar layar di ponsel.
+const STAGE_SIZES = '(min-width: 1024px) min(56vw, 590px), 100vw';
 
 interface Props {
   images: ProductImage[];
@@ -17,7 +16,7 @@ interface Props {
 /**
  * Galeri detail produk. Slider memakai CSS scroll-snap (geser dengan sentuhan tanpa pustaka), tombol
  * sebelumnya/berikutnya, thumbnail, panah kiri/kanan di keyboard, dan lightbox dari <dialog> bawaan
- * (fokus terkurung, Escape menutup, fokus kembali ke pemicu). Satu foto: tanpa kontrol. Tanpa foto: placeholder.
+ * (fokus terkurung, Escape menutup, fokus kembali ke pemicu). Lightbox menampilkan foto utuh (ukuran LARGE, rasio asli) dan bisa dicubit/diketuk dua kali untuk zoom. Satu foto: tanpa kontrol. Tanpa foto: placeholder.
  */
 export function Gallery({ images, name, placeholder }: Props) {
   const photos = [...images].sort((a, b) => Number(b.primary) - Number(a.primary)); // foto utama dulu, sisanya sesuai urutan admin
@@ -26,6 +25,7 @@ export function Gallery({ images, name, placeholder }: Props) {
   const [zoomIndex, setZoomIndex] = useState<number | null>(null);
   const track = useRef<HTMLDivElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
+  const thumbs = useRef<HTMLDivElement>(null);
   const at = Math.min(index, count - 1);
   const zoomed = zoomIndex === null ? null : photos[Math.min(zoomIndex, count - 1)];
 
@@ -33,6 +33,15 @@ export function Gallery({ images, name, placeholder }: Props) {
     const el = dialog.current;
     if (zoomIndex !== null && el && !el.open) el.showModal();
   }, [zoomIndex]);
+
+  useEffect(() => {
+    // Kolom thumbnail bisa digulir sendiri: jaga thumbnail aktif tetap terlihat (tanpa menggulir halaman)
+    const col = thumbs.current;
+    const btn = col?.children[at] as HTMLElement | undefined;
+    if (!col || !btn) return;
+    if (btn.offsetTop < col.scrollTop) col.scrollTop = btn.offsetTop - 4;
+    else if (btn.offsetTop + btn.offsetHeight > col.scrollTop + col.clientHeight) col.scrollTop = btn.offsetTop + btn.offsetHeight - col.clientHeight + 4;
+  }, [at]);
 
   if (count === 0) return <div className="gallery">{placeholder}</div>;
 
@@ -73,6 +82,15 @@ export function Gallery({ images, name, placeholder }: Props) {
 
   return (
     <div className="gallery" data-multi={count > 1 || undefined} role="group" aria-roledescription="galeri" aria-label={`Foto ${name}`} onKeyDown={onKey}>
+      {count > 1 && (
+        <div className="thumbs" ref={thumbs} role="group" aria-label="Pilih foto">
+          {photos.map((img, i) => (
+            <button key={img.id} type="button" aria-label={`Foto ${i + 1}`} aria-current={i === at ? 'true' : undefined} onClick={() => go(i)}>
+              <img src={img.thumbnailUrl} alt="" width={160} height={200} loading="lazy" />
+            </button>
+          ))}
+        </div>
+      )}
       <div className="stage">
         <div className="track" ref={track} onScroll={onScroll}>
           {photos.map((img, i) => (
@@ -93,22 +111,13 @@ export function Gallery({ images, name, placeholder }: Props) {
           </output>
         )}
       </div>
-      {count > 1 && (
-        <div className="thumbs" role="group" aria-label="Pilih foto">
-          {photos.map((img, i) => (
-            <button key={img.id} type="button" aria-label={`Foto ${i + 1}`} aria-current={i === at ? 'true' : undefined} onClick={() => go(i)}>
-              <img src={img.thumbnailUrl} alt="" width={160} height={200} loading="lazy" />
-            </button>
-          ))}
-        </div>
-      )}
-      <dialog ref={dialog} className="lightbox" aria-label={`Foto ${name}, tampilan besar`} onClose={() => setZoomIndex(null)} onClick={onBackdrop}>
+      <dialog ref={dialog} className="lightbox" aria-label={`Foto ${name}, tampilan besar`} onClose={() => { if (!dialog.current?.open) setZoomIndex(null); }} /* event close bisa tiba setelah dialog dibuka lagi */ onClick={onBackdrop}>
         {zoomed && zoomIndex !== null && (
           <>
             <button type="button" className="lb-btn close" onClick={() => dialog.current?.close()}>
               Tutup
             </button>
-            <img key={zoomed.id} src={zoomed.largeUrl} srcSet={`${zoomed.cardUrl} 480w, ${zoomed.detailUrl} 960w, ${zoomed.largeUrl} 1600w`} sizes={ZOOM_SIZES} alt={alt(zoomIndex)} />
+            <ZoomImage key={zoomed.id} src={zoomed.largeUrl} alt={alt(zoomIndex)} />
             {count > 1 && (
               <>
                 {arrows('lb-btn')}

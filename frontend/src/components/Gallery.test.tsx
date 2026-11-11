@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { ProductImage } from '../api/types';
 import { Gallery } from './Gallery';
+import { clampPan } from './ZoomImage';
 
 const photo = (id: number, primary = false): ProductImage => ({
   id, primary, position: id, width: 1200, height: 1500,
@@ -91,6 +92,8 @@ describe('Gallery', () => {
     expect(dialog).toHaveAttribute('open');
     const big = () => within(dialog).getByRole('img');
     expect(big()).toHaveAttribute('src', '/l1.jpg');
+    expect(big()).not.toHaveAttribute('srcset'); // LARGE tidak dipotong 4:5; ukuran terpotong tidak boleh menggantikannya
+    expect(big()).toHaveAttribute('data-zoom', '1');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Foto berikutnya' }));
     expect(big()).toHaveAttribute('src', '/l2.jpg');
     fireEvent.keyDown(dialog, { key: 'ArrowRight' });
@@ -98,5 +101,24 @@ describe('Gallery', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Tutup' }));
     expect(within(dialog).queryByRole('img')).toBeNull();
     expect(counter()).toHaveTextContent('1 / 5'); // galeri tetap di foto pemicu, tempat fokus kembali
+  });
+
+  it('kolom thumbnail ada sebelum foto utama dalam urutan DOM (urutan Tab sama dengan urutan visual)', () => {
+    render(<Gallery images={five} name="Kopi Gayo" />);
+    const thumbs = screen.getByRole('group', { name: 'Pilih foto' });
+    const stage = screen.getAllByRole('img', { name: /foto 1 dari 5/ })[0]!;
+    expect(thumbs.compareDocumentPosition(stage) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});
+
+describe('clampPan', () => {
+  it('tanpa zoom atau gambar lebih kecil dari layar: tidak bisa digeser', () => {
+    expect(clampPan(50, 390, 1, 390)).toBe(0);
+    expect(clampPan(50, 100, 2, 390)).toBe(0);
+  });
+  it('diperbesar: geser dibatasi setengah selisih ukuran tampil dan layar', () => {
+    expect(clampPan(500, 390, 2, 390)).toBe(195);
+    expect(clampPan(-500, 390, 2, 390)).toBe(-195);
+    expect(clampPan(40, 390, 2, 390)).toBe(40);
   });
 });
