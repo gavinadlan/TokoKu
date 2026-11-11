@@ -183,8 +183,16 @@ Masalah yang diperbaiki: foto terasa kecil saat produk dibuka, dan produk dengan
 
 - **Rasio 4:5 di semua lebar**, sama dengan kartu katalog dan dengan potongan Cloudinary (`c_fill,ar_4:5`). Rasio 1:1 di ponsel dari Putaran 2 dihapus, karena foto 4:5 dari server terpotong lagi di kotak 1:1.
 - **Ponsel (< 640px):** foto selebar layar penuh tanpa gutter dan tanpa radius, 390×488 di layar 390 (sebelumnya 358×358). Lebar 640 sampai 1023px: galeri dibatasi 560px.
-- **Desktop (≥ 1024px):** dua kolom, galeri ±56% lebar konten (58% dari lebar setelah jarak antarkolom), kolom info mengisi sisanya, keduanya lengket. Lebar galeri dibatasi tinggi layar supaya foto 4:5 tidak pernah lebih tinggi dari area di bawah header: `--gw = min(58% × (konten − jarak), (100dvh − header − 48px) × 0,8)`. Hasilnya 668×835 di layar setinggi 950px ke atas, dan 630×788 di 1440×900 (sebelumnya 579×723).
-- **Kompromi yang disadari:** di layar setinggi 900px, foto 4:5 sudah memakai seluruh tinggi yang tersedia, jadi deret thumbnail berada tepat di bawah lipatan. Penanda "1 / 5" dan tombol panah tetap terlihat di atas foto. Bila galeri lebih tinggi dari layar, posisi lengketnya menempel ke tepi bawah supaya thumbnail tetap terjangkau.
+- **Desktop (≥ 1024px):** dua kolom, keduanya lengket. Dengan lebih dari satu foto, kolom thumbnail vertikal (72px + jarak 12px) berada di kiri foto utama, setinggi foto utama; kolom info mengisi sisanya. `--gw` adalah lebar foto utama, `--th` kolom thumbnail (0 untuk satu foto, 84px untuk banyak foto): `--gw = min(share × (konten − jarak − th), (100dvh − header − 56px) × 0,8)`, `share` 0,58 untuk satu foto dan 0,6 untuk banyak foto. Angka 56px = jarak 48px ditambah 8px untuk breadcrumb, supaya foto 4:5 selesai di atas tepi bawah layar.
+- **Ukuran terukur di 1440×900** (Playwright `boundingBox`, px CSS, dicetak oleh `round3-shots.spec.ts` sebagai `UKURAN`; spec gagal bila foto utama banyak foto < 620px):
+
+  | | foto utama | thumbnail | kolom info |
+  |---|---|---|---|
+  | 1 foto | x 120, y 118,7, **624 × 780** | tidak ada | x 792, lebar 528 |
+  | 5 foto | x 204, y 118,7, **624 × 780** | kolom x 120, 72 × 780; tiap thumbnail 64 × 80, yang pertama di x 124, y 122,7 | x 876, lebar 444 |
+
+  Foto utama berakhir di y 898,7 (≤ 900), jadi tidak terpotong lipatan. Sebelumnya (thumbnail di bawah) 630 × 788 yang berakhir di y 907; pada percobaan pertama thumbnail ke samping dengan `share` 0,58 foto utama menyusut ke 584 × 730, lebih kecil dari sebelumnya, jadi `share` naik ke 0,6 dan batas tinggi dikoreksi. Harga yang dibayar: kolom info 444px (sebelumnya 484px).
+- **Kompromi yang disadari:** panah dan penanda "1 / 5" berada di dalam foto utama dan tetap terlihat; seluruh thumbnail terlihat tanpa menggulir. Bila produk punya lebih banyak thumbnail daripada tinggi foto (layar pendek, 6 foto di 1100×600), kolom menggulir sendiri dan mengikuti foto aktif; halaman tidak ikut bergulir.
 - **Tanpa layout shift:** kotak 4:5 memakai `aspect-ratio`, gambar diposisikan absolut di dalamnya, atribut `width`/`height` diisi, dan latar memakai nada `--tone-1` selama gambar dimuat.
 - **`object-fit: cover`** di panggung dan thumbnail (potongan tengah, sama dengan kartu). Lightbox memakai `contain` supaya gambar tidak dipotong lagi.
 
@@ -192,7 +200,7 @@ Masalah yang diperbaiki: foto terasa kecil saat produk dibuka, dan produk dengan
 
 - **CSS scroll-snap**, tanpa pustaka carousel: lintasan `overflow-x: auto` dengan `scroll-snap-type: x mandatory`, satu foto per langkah. Geser dengan jari atau trackpad berjalan bawaan.
 - **Tombol sebelumnya/berikutnya** hanya di desktop: 44px, hairline, latar paper tembus, opasitas 0,72 dan penuh saat panggung disorot atau tombol difokus. Di ujung ditandai `aria-disabled` (bukan `disabled`, supaya fokus keyboard tidak hilang) dan dipudarkan. Tidak berputar dari foto terakhir ke pertama.
-- **Thumbnail** di bawah panggung (desktop): 64×80, foto aktif diberi bingkai ink 2px dan `aria-current`, yang lain sedikit dipudarkan. Di ponsel thumbnail dan panah disembunyikan; cukup penanda "2 / 5".
+- **Thumbnail** di kolom vertikal sebelah kiri panggung (desktop): 64×80, foto aktif diberi bingkai ink 2px dan `aria-current`, yang lain sedikit dipudarkan. Di ponsel thumbnail dan panah disembunyikan; cukup penanda "2 / 5".
 - **Penanda posisi** "2 / 5" di sudut kanan bawah foto, `output` dengan `aria-live`.
 - **Keyboard:** panah kiri/kanan saat fokus berada di dalam galeri atau lightbox.
 - **Pindah lewat tombol, thumbnail, dan keyboard tidak dianimasikan** (MOTION 1); geser dengan jari tetap mengikuti gerak bawaan. Ini juga membuat `prefers-reduced-motion` terpenuhi tanpa cabang khusus.
@@ -201,11 +209,11 @@ Masalah yang diperbaiki: foto terasa kecil saat produk dibuka, dan produk dengan
 
 ## R3-3. Lightbox
 
-Klik foto membuka tampilan layar penuh di atas ink, dengan tombol "Tutup" (teks, bukan ikon), panah, dan penanda posisi. Memakai **`<dialog>` bawaan** seperti `ConfirmDialog`: fokus terkurung, Escape menutup, fokus kembali ke foto pemicu. Klik di luar gambar juga menutup. Radix Dialog tidak ada di project, jadi tidak ditambahkan. Navigasi di dalam lightbox tidak menggeser galeri di belakangnya, sehingga fokus kembali tepat ke foto yang tadi diklik.
+Klik foto membuka tampilan layar penuh di atas ink, dengan tombol "Tutup" (teks, bukan ikon), panah, dan penanda posisi. Memakai **`<dialog>` bawaan** seperti `ConfirmDialog`: fokus terkurung, Escape menutup, fokus kembali ke foto pemicu. Klik di luar gambar juga menutup. Radix Dialog tidak ada di project, jadi tidak ditambahkan. Foto tampil utuh dengan rasio aslinya (tegak maupun mendatar), tidak pernah lebih besar dari layar. Cubit dua jari memperbesar sampai 4×, geser saat diperbesar, ketuk dua kali memperbesar 2,5× atau mengembalikan; dikerjakan `ZoomImage.tsx` dengan Pointer Events tanpa pustaka. Navigasi di dalam lightbox tidak menggeser galeri di belakangnya, sehingga fokus kembali tepat ke foto yang tadi diklik.
 
 ## R3-4. Ukuran gambar
 
-- Ukuran bernama keempat di backend: **`LARGE` 1600px** (`f_auto,q_auto,c_fill,ar_4:5,w_1600`), dikirim sebagai `largeUrl`. Dipakai lightbox dan layar rapat piksel (panggung 630 sampai 668px butuh lebih dari 960px di layar 2x).
+- Ukuran bernama keempat di backend: **`LARGE` 1600px** (`f_auto,q_auto,c_limit,w_1600,h_1600`, tanpa potong 4:5, rasio asli), dikirim sebagai `largeUrl`. Dipakai lightbox dan layar rapat piksel (panggung 624 sampai 668px butuh lebih dari 960px di layar 2x).
 - `srcset` panggung: 160w, 480w, 960w, 1600w dengan `sizes="(min-width: 1024px) min(56vw, 670px), 100vw"`. Lightbox: 480w, 960w, 1600w dengan `sizes="(min-aspect-ratio: 4/5) 80vh, 100vw"`.
 - Foto pertama `loading="eager"` dan `fetchpriority="high"`; foto lain `loading="lazy"`. Gambar lightbox baru diminta saat dibuka.
 
@@ -218,11 +226,14 @@ Klik foto membuka tampilan layar penuh di atas ink, dengan tombol "Tutup" (teks,
 1. Versi pertama membuat galeri selebar 58% tanpa batas tinggi: foto 835px terpotong lipatan di 1440×900. Diperbaiki dengan batas tinggi layar di `--gw`.
 2. Penanda "1 / 5" semula disembunyikan di desktop karena thumbnail sudah menandai posisi. Dengan thumbnail di bawah lipatan pada layar 900px, jumlah foto jadi tidak terlihat. Penanda sekarang tampil di semua lebar.
 3. Halaman ponsel bisa digulir ke samping sejauh lima foto, karena teks khusus pembaca layar diposisikan absolut di luar lintasan. Diperbaiki, dan e2e sekarang memeriksa tidak ada overflow horizontal.
-4. Belum diperbaiki: di ponsel, lightbox menampilkan foto selebar yang sama dengan halaman (layar tegak membatasi lebar), jadi manfaatnya di ponsel kecil.
+4. Lightbox semula memotong foto 4:5 dan tidak bisa diperbesar di ponsel. Diperbaiki: `LARGE` tidak dipotong, foto tampil utuh, ada zoom cubit dan ketuk dua kali.
+5. Thumbnail di bawah foto jatuh di bawah lipatan 900px. Dipindah ke kolom kiri; pemindahan pertama menyusutkan foto utama (584px), lalu `share` dan batas tinggi dikoreksi sampai 624px.
+6. Screenshot ponsel gagal di langkah "tunggu gambar": selector `.gallery img` `.first()` mengenai `<img>` thumbnail yang `display:none` di ponsel (thumbnail ada lebih dulu di DOM). Salah selector di spec, bukan bug aplikasi; sekarang `.gallery .track img`.
 
 ## Alasan keputusan Putaran 3 (satu baris)
 
 - 4:5 di mana-mana: satu potongan untuk kartu, panggung, dan thumbnail, tanpa potong ganda.
 - Lebar dibatasi tinggi layar: foto yang utuh terlihat lebih berguna daripada foto lebih lebar yang terpotong lipatan.
 - scroll-snap dan `<dialog>` bawaan: nol dependensi baru, perilaku sentuh dan fokus dikerjakan browser.
-- `LARGE` tetap 4:5: satu rumus transformasi untuk semua ukuran, hemat kredit Cloudinary.
+- `LARGE` utuh (`c_limit`): lightbox harus menunjukkan foto apa adanya; tiga ukuran kecil tetap 4:5 agar kartu seragam, jadi tetap hanya empat variasi transformasi.
+- Kolom thumbnail di samping: semua thumbnail dan foto utama muat di 900px tanpa menggulir; biayanya kolom info 40px lebih sempit.
