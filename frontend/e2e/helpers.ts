@@ -67,3 +67,20 @@ export async function apiPaidOrder(request: APIRequestContext, token: string, ty
   expect(sim.ok()).toBeTruthy();
   return order.id as number;
 }
+
+/** Foto contoh dirender di tempat (bukan foto asli): kantong bernomor di atas nada palet. Foto ke-4 sengaja mendatar. */
+export async function samplePhotos(page: Page, count: number) {
+  const tones = [['#DACBB4', '#3A2D25'], ['#5B4636', '#F6F1E9'], ['#C8B293', '#1B1613'], ['#7A624E', '#F6F1E9'], ['#E9E0D2', '#5B4636']];
+  const p = await page.context().newPage();
+  const files = [];
+  for (let i = 0; i < count; i++) {
+    const [bg, fg] = tones[i % tones.length]!;
+    const landscape = i === 3;
+    await p.setViewportSize(landscape ? { width: 1500, height: 1000 } : { width: 1200, height: 1500 });
+    await p.setContent(`<body style="margin:0;height:100vh;display:grid;place-items:center;background:${bg}">
+      <div style="width:${landscape ? 30 : 46}%;aspect-ratio:3/4;background:${fg};border-radius:12px 12px 28px 28px;display:grid;place-items:center;font:300 220px Georgia,serif;color:${bg}">${i + 1}</div></body>`);
+    files.push({ name: `contoh-${i + 1}.png`, mimeType: 'image/png', buffer: await p.screenshot() });
+  }
+  await p.close();
+  return files;
+}

@@ -1,29 +1,12 @@
-import { test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { adminLoginUI, API, apiAdminToken } from './helpers';
+import { adminLoginUI, API, apiAdminToken, samplePhotos } from './helpers';
 
 // Screenshot Putaran 3 (galeri detail produk). SHOTS_TAG=sebelum|sesudah menentukan awalan nama berkas.
 const OUT = fileURLToPath(new URL('../../docs/design/round3/', import.meta.url));
 const TAG = process.env.SHOTS_TAG ?? 'sesudah';
 const VIEWPORTS = [{ name: 'desktop-1440', width: 1440, height: 900 }, { name: 'ponsel-390', width: 390, height: 844 }];
-
-/** Foto contoh dirender di tempat (bukan foto asli): kantong bernomor di atas nada palet. Foto ke-4 sengaja mendatar. */
-export async function samplePhotos(page: Page, count: number) {
-  const tones = [['#DACBB4', '#3A2D25'], ['#5B4636', '#F6F1E9'], ['#C8B293', '#1B1613'], ['#7A624E', '#F6F1E9'], ['#E9E0D2', '#5B4636']];
-  const p = await page.context().newPage();
-  const files = [];
-  for (let i = 0; i < count; i++) {
-    const [bg, fg] = tones[i % tones.length]!;
-    const landscape = i === 3;
-    await p.setViewportSize(landscape ? { width: 1500, height: 1000 } : { width: 1200, height: 1500 });
-    await p.setContent(`<body style="margin:0;height:100vh;display:grid;place-items:center;background:${bg}">
-      <div style="width:${landscape ? 30 : 46}%;aspect-ratio:3/4;background:${fg};border-radius:12px 12px 28px 28px;display:grid;place-items:center;font:300 220px Georgia,serif;color:${bg}">${i + 1}</div></body>`);
-    files.push({ name: `contoh-${i + 1}.png`, mimeType: 'image/png', buffer: await p.screenshot() });
-  }
-  await p.close();
-  return files;
-}
 
 test('screenshot galeri: produk 1 foto dan 5 foto, desktop 1440 dan ponsel 390', async ({ page, request }) => {
   test.setTimeout(180_000);
@@ -41,15 +24,24 @@ test('screenshot galeri: produk 1 foto dan 5 foto, desktop 1440 dan ponsel 390',
     for (const v of VIEWPORTS) {
       await page.setViewportSize(v);
       await page.goto(`/produk/${prod.id}`);
-      await page.locator('.gallery img').first().waitFor();
+      await page.locator('.gallery .track img').first().waitFor();
       await page.evaluate(() => { window.scrollTo(0, 0); return document.fonts.ready; });
       await page.waitForTimeout(400);
       await page.screenshot({ path: `${OUT}${TAG}-${count}foto-${v.name}.png` });
+      // ukuran pasti (px, CSS) untuk catatan DESIGN.md
+      const box = async (sel: string) => page.locator(sel).first().boundingBox();
+      const m = { viewport: `${v.width}x${v.height}`, foto: count, utama: await box('.gallery .stage'), thumbs: count > 1 ? await box('.gallery .thumbs') : null, thumb1: count > 1 ? await box('.gallery .thumbs button') : null, panel: await box('.panel') };
+      console.log(`UKURAN ${JSON.stringify(m)}`);
+      if (v.width === 1440 && count > 1) expect(m.utama!.width, 'foto utama di 1440x900').toBeGreaterThanOrEqual(620);
       if (TAG === 'sesudah' && count === 5) {
         await page.getByRole('button', { name: /perbesar/ }).first().click();
         await page.getByRole('dialog').waitFor();
         await page.waitForTimeout(400);
         await page.screenshot({ path: `${OUT}${TAG}-lightbox-${v.name}.png` });
+        // foto ke-4 mendatar: tampil utuh, tidak dipotong 4:5
+        for (let i = 0; i < 3; i++) await page.getByRole('dialog').getByRole('button', { name: 'Foto berikutnya' }).click();
+        await page.waitForTimeout(400);
+        await page.screenshot({ path: `${OUT}${TAG}-lightbox-mendatar-${v.name}.png` });
       }
     }
     await page.setViewportSize({ width: 1280, height: 800 });
