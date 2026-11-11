@@ -138,7 +138,9 @@ textarea.input { min-height: 112px; resize: vertical; }
 .detail { display: grid; gap: var(--s-5); padding-bottom: 120px; }
 /* Desktop: galeri ±58% lebar konten, tetapi foto 4:5 tidak pernah lebih tinggi dari layar (--gw dibatasi tinggi viewport). */
 @media (min-width: 1024px) {
-  .detail { --gw: max(380px, min(calc((min(var(--page), 100vw - var(--gutter) * 2) - var(--s-7)) * .58), calc((100dvh - var(--header-h) - var(--s-7)) * .8))); grid-template-columns: var(--gw) minmax(0, 1fr); gap: var(--s-7); align-items: start; padding-bottom: var(--s-9); }
+  /* --th: kolom thumbnail (72px + jarak 12px) di sisi kiri foto utama bila ada lebih dari satu foto; --gw: lebar foto utama. */
+  .detail { --th: 0px; --share: .58; --gw: max(380px, min(calc((min(var(--page), 100vw - var(--gutter) * 2) - var(--s-7) - var(--th)) * var(--share)), calc((100dvh - var(--header-h) - var(--s-7) - var(--s-2)) * .8))); grid-template-columns: calc(var(--gw) + var(--th)) minmax(0, 1fr); gap: var(--s-7); align-items: start; padding-bottom: var(--s-9); }
+  .detail:has(.gallery[data-multi]) { --th: 84px; --share: .6; } /* jatah foto utama naik supaya kolom thumbnail tidak memperkecilnya: 630px di 1440x900 (sama dengan sebelum thumbnail dipindah ke samping) */
   .panel { position: sticky; top: calc(var(--header-h) + var(--s-5)); }
 }
 .panel .cat { font-size: var(--text-sm); color: var(--ink-muted); }
@@ -321,25 +323,28 @@ textarea.input { height: auto; }
 @media (min-width: 640px) and (max-width: 1023.98px) { .gallery { max-width: 560px; } }
 @media (min-width: 1024px) {
   /* Lengket. Bila galeri lebih tinggi dari layar, ia menempel di tepi bawah supaya thumbnail tetap terjangkau. */
-  .gallery { position: sticky; top: min(calc(var(--header-h) + var(--s-4)), calc(100dvh - var(--gw) * 1.25 - var(--thumbs-h, 0px) - var(--s-4))); }
-  .gallery[data-multi] { --thumbs-h: 100px; } /* thumbnail 80 + bantalan 8 + jarak 12 */
+  .gallery { position: sticky; top: min(calc(var(--header-h) + var(--s-4)), calc(100dvh - var(--gw) * 1.25 - var(--s-4))); }
+  .gallery[data-multi] { grid-template-columns: 72px minmax(0, 1fr); gap: var(--s-3); }
   .gallery .nav { display: grid; place-items: center; position: absolute; top: calc(50% - 22px); width: 44px; height: 44px; padding: 0 0 3px; border: 1px solid var(--line-strong); border-radius: var(--radius-md); background: rgb(246 241 233 / .92); font-size: var(--text-xl); line-height: 1; cursor: pointer; opacity: .72; transition: opacity .15s ease; }
   .gallery .nav.prev { left: 12px; } .gallery .nav.next { right: 12px; }
   .gallery .stage:hover .nav, .gallery .nav:focus-visible { opacity: 1; }
   .gallery .nav[aria-disabled="true"], .gallery .stage:hover .nav[aria-disabled="true"] { opacity: .3; cursor: default; }
-  .gallery .thumbs { display: flex; gap: var(--s-2); overflow-x: auto; padding: 4px; margin: -4px; }
+  /* Kolom vertikal setinggi foto utama (contain: size supaya jumlah thumbnail tidak menambah tinggi baris); melebihi itu, gulir sendiri. */
+  .gallery .thumbs { display: flex; flex-direction: column; gap: var(--s-2); position: relative; overflow-y: auto; contain: size; padding: 4px; scrollbar-width: thin; }
   .gallery .thumbs button { flex: none; width: 64px; aspect-ratio: 4 / 5; padding: 0; border: 0; border-radius: var(--radius-md); overflow: hidden; background: var(--tone-1); cursor: pointer; opacity: .78; transition: opacity .15s ease; }
   .gallery .thumbs button:hover, .gallery .thumbs button[aria-current] { opacity: 1; }
   .gallery .thumbs button[aria-current] { outline: 2px solid var(--ink); outline-offset: 2px; }
   .gallery .thumbs img { width: 100%; height: 100%; object-fit: cover; }
 }
 
-/* lightbox: <dialog> layar penuh, gambar utuh (contain) di atas ink */
-dialog.lightbox { width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: rgb(27 22 19 / .96); color: var(--paper); overflow: hidden; }
+/* lightbox: <dialog> layar penuh, foto utuh di atas ink */
+dialog.lightbox { width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: var(--ink); color: var(--paper); overflow: hidden; }
 dialog.lightbox[open] { display: grid; place-items: center; }
 dialog.lightbox::backdrop { background: var(--ink); }
 html:has(dialog.lightbox[open]) { overflow: hidden; }
-dialog.lightbox img { height: min(100dvh, 125vw); width: auto; max-width: 100vw; object-fit: contain; }
+/* Foto utuh, rasio asli, tidak pernah lebih besar dari layar; touch-action: none supaya cubit dan geser ditangani ZoomImage */
+dialog.lightbox img { width: auto; height: auto; max-width: 100vw; max-height: 100dvh; object-fit: contain; touch-action: none; user-select: none; -webkit-user-drag: none; cursor: zoom-in; }
+dialog.lightbox img:not([data-zoom="1"]) { cursor: grab; }
 dialog.lightbox :focus-visible { outline-color: var(--paper); }
 .lb-btn { position: absolute; display: grid; place-items: center; min-width: 44px; height: 44px; padding: 0 var(--s-3); border: 1px solid rgb(246 241 233 / .55); border-radius: var(--radius-md); background: rgb(27 22 19 / .72); color: var(--paper); font-size: var(--text-sm); cursor: pointer; }
 .lb-btn:hover { background: var(--ink); border-color: var(--paper); }
