@@ -83,7 +83,9 @@ public class CloudinaryImageStorage implements ImageStorage {
         if (publicId == null || !storedUrl.contains("/image/upload/")) {
             return storedUrl;
         }
-        String transform = "f_auto,q_auto,c_fill,ar_4:5,w_" + size.width();
+        String transform = size.crop()
+                ? "f_auto,q_auto,c_fill,ar_4:5,w_" + size.width()
+                : "f_auto,q_auto,c_limit,w_" + size.width() + ",h_" + size.width();
         return storedUrl.replaceFirst("/image/upload/", "/image/upload/" + transform + "/");
     }
 
