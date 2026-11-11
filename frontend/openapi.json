@@ -1038,6 +1038,30 @@
                 }
             }
         },
+        "/api/admin/change-password": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Ganti password admin; wajib untuk admin awal. Mencabut semua refresh token, masuk ulang sesudahnya",
+                "operationId": "changePassword_1",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ChangePasswordRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
         "/api/admin/auth/refresh": {
             "post": {
                 "tags": [
@@ -2460,11 +2484,15 @@
                             "USER",
                             "ADMIN"
                         ]
+                    },
+                    "mustChangePassword": {
+                        "type": "boolean"
                     }
                 },
                 "required": [
                     "email",
                     "id",
+                    "mustChangePassword",
                     "name",
                     "role"
                 ]

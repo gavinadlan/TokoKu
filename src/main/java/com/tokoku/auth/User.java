@@ -28,6 +28,9 @@ public class User {
     @Column(name = "must_change_password", nullable = false)
     private boolean mustChangePassword;
 
+    @Column(name = "bootstrap_env_hash")
+    private String bootstrapEnvHash;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -46,6 +49,8 @@ public class User {
     }
 
     public void requirePasswordChange() { this.mustChangePassword = true; }
+    public String getBootstrapEnvHash() { return bootstrapEnvHash; }
+    public void setBootstrapEnvHash(String hash) { this.bootstrapEnvHash = hash; }
     public boolean isMustChangePassword() { return mustChangePassword; }
 
     public Long getId() { return id; }

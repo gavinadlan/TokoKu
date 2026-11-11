@@ -335,23 +335,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/change-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Ganti password admin; wajib untuk admin awal. */
-        post: operations["changePassword"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/admin/uploads/sign": {
         parameters: {
             query?: never;
@@ -380,6 +363,23 @@ export interface paths {
         put?: never;
         /** Daftarkan foto yang sudah diunggah; signature diverifikasi, maksimal 6 foto (ADMIN) */
         post: operations["register_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ganti password admin; wajib untuk admin awal. Mencabut semua refresh token, masuk ulang sesudahnya */
+        post: operations["changePassword_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1687,6 +1687,28 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["ProductResponse"];
                 };
+            };
+        };
+    };
+    changePassword_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
