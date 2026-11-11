@@ -13,6 +13,7 @@
     "gen:api": "openapi-typescript openapi.json -o src/api/schema.d.ts",
     "fetch:api": "curl -sf ${VITE_API_URL:-http://localhost:8080}/v3/api-docs | python3 -m json.tool > openapi.json && npm run gen:api",
     "e2e": "playwright test",
+    "e2e:firstlogin": "playwright test -c playwright.firstlogin.config.ts",
     "shots": "playwright test --project=screens"
   },
   "dependencies": {

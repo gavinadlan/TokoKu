@@ -214,7 +214,7 @@ Detail: bagian "Infrastruktur & Deployment Gratis" di [docs/PRD.md](docs/PRD.md)
 
 ## Deploy gratis (Render + Neon)
 
-Blueprint: [`render.yaml`](render.yaml) (backend Docker `tokoku-api` + static site `tokoku-web` dengan rewrite SPA). Cabang `deploy-prep`; belum pernah dijalankan di Render (YAML belum divalidasi dengan `render blueprint validate`).
+Blueprint: [`render.yaml`](render.yaml) (backend Docker `tokoku-api` + static site `tokoku-web` dengan rewrite SPA). Cabang `deploy-prep`; belum pernah dijalankan di Render. `render.yaml` lolos validasi terhadap JSON schema resmi Render (`render.com/schema/render.yaml.json`); CLI `render` tidak terpasang di mesin ini, jadi `render blueprints validate` belum dijalankan.
 
 1. **Neon**: buat project, salin koneksi **langsung** (bukan host `-pooler`; Flyway memakai advisory lock). `DATABASE_URL=jdbc:postgresql://<host>/<db>?sslmode=require`, user dan password terpisah di `DATABASE_USER`/`DATABASE_PASSWORD`. Pool Hikari prod 4 koneksi tanpa koneksi diam (Neon menutup koneksi menganggur); Flyway berjalan saat start dan mencoba ulang 5 kali sampai database bangun.
 2. **Brevo**: buat API key (v3), verifikasi pengirim, isi `BREVO_API_KEY` dan `MAIL_FROM` (`Nama <alamat-terverifikasi>`).
@@ -223,3 +223,15 @@ Blueprint: [`render.yaml`](render.yaml) (backend Docker `tokoku-api` + static si
 5. **Demo** (opsional): `APP_SEED_DEMO=true` (+ `DEMO_USER_PASSWORD` untuk akun pembeli demo), lalu kembalikan ke `false` setelah data terbentuk.
 
 Waktu start di container dan batas memori: lihat [docs/DECISIONS.md](docs/DECISIONS.md).
+
+### Bila backend tidak pernah Live di Render gratis
+
+Terukur di container 512 MB dengan jatah CPU free (0,1 CPU): `Started TokokuApplication` setelah **299 detik**, `/actuator/health` UP setelah **343 detik** (0,5 CPU: 14 dan 18 detik). Render membatalkan deploy yang belum sehat dalam 15 menit dan memeriksa tiap 5 detik (kedua batas tetap, tidak bisa diubah di `render.yaml`). Jadi deploy pertama seharusnya Live, dengan margin sekitar 2,6x; tetapi layanan free tidur setelah 15 menit tanpa traffic, dan tiap bangun butuh sekitar 5 menit (bukan "sekitar satu menit" seperti tertulis di dokumentasi Render). Angka 0,1 CPU adalah batas cgroup Docker di Mac saya; CPU Render yang sebenarnya bisa berbeda.
+
+Gejala: deploy berstatus "Failed"/"Canceled" (log berhenti sebelum `Started TokokuApplication`), service restart berulang, atau Live tetapi request pertama sering timeout. Cek log deploy untuk baris `Started TokokuApplication in N seconds`.
+
+Opsi, dari yang paling sederhana:
+
+1. **Naik ke Starter** (`plan: starter` di `render.yaml`; 0,5 CPU dan 512 MB menurut dokumentasi compute plans Render). Start sekitar 15 detik, tidak tidur. Harga sekitar $7 per bulan (angka dari pemilik proyek; halaman harga resmi tidak terbaca saat saya periksa, cek dulu di `render.com/pricing`). Satu-satunya perubahan: satu baris plan.
+2. **Tetap gratis, perkecil waktu start** (belum dicoba): `SPRING_MAIN_LAZY_INITIALIZATION=true` atau AppCDS pada image. Ukur ulang dengan `docker run --memory=512m --cpus=0.1` sebelum dipercaya.
+3. **Pemanas** (ping tiap 10 menit) menahan layanan tetap bangun, tetapi 750 jam instance gratis per bulan habis di sekitar 31 hari, dan Render boleh me-restart layanan free kapan saja. Tidak disarankan sebagai solusi utama.

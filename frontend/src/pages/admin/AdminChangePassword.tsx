@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { adminApi, callAdmin } from '../../api/client';
 import { useAdminAuth } from '../../auth/AdminAuthContext';
 import { Field } from '../../components/Field';
-import { messageOf } from '../../lib/errors';
+import { ApiError, messageOf } from '../../lib/errors';
 import { useDocumentTitle } from '../../lib/useDocumentTitle';
 
 const schema = z
@@ -41,7 +41,8 @@ export function AdminChangePasswordPage() {
               await logout(); // server mencabut semua sesi; masuk ulang dengan password baru
               navigate('/admin/masuk', { replace: true });
             } catch (e) {
-              setServerError(messageOf(e));
+              // 401 di sini = password saat ini salah (sesi masih sah); pesan umum "sesi berakhir" menyesatkan
+              setServerError(e instanceof ApiError && e.status === 401 ? 'Password saat ini salah.' : messageOf(e));
             }
           })}
         >

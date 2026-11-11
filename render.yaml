@@ -1,10 +1,15 @@
 # Render Blueprint: backend (Docker, free) + frontend (static site). Database: Neon (di luar Render).
+# Field dicocokkan dengan JSON schema resmi https://render.com/schema/render.yaml.json (lolos validasi; `plan`/`region`/`healthCheckPath`
+# tidak boleh di static site, `routes` = type redirect|rewrite + source + destination).
+# Waktu start terukur (container 512 MB, 0.1 CPU = jatah free): `Started` 299 detik, /actuator/health UP 343 detik. Render membatalkan deploy
+# yang belum sehat dalam 15 menit (900 detik) dan tiap health check harus menjawab dalam 5 detik; keduanya TIDAK bisa diatur di Blueprint
+# (schema tidak punya field timeout). Bila deploy tetap tidak Live: README, "Bila backend tidak pernah Live di Render gratis".
 # Nilai `sync: false` ditanya sekali saat Blueprint dibuat; isi lewat dashboard. Daftar lengkap: README, bagian "Environment variable".
 services:
   - type: web
     name: tokoku-api
     runtime: docker
-    plan: free
+    plan: free                              # ganti ke `starter` (0.5 CPU, 512 MB) bila tidak pernah Live; lihat README
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /actuator/health
