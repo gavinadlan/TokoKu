@@ -40,8 +40,8 @@ export function AdminLoginPage() {
           onSubmit={form.handleSubmit(async (v) => {
             setServerError(null);
             try {
-              await login(v.email, v.password);
-              navigate(from, { replace: true });
+              const user = await login(v.email, v.password);
+              navigate(user.mustChangePassword ? '/admin/ganti-password' : from, { replace: true });
             } catch (e) {
               setServerError(e instanceof ApiError && e.status === 429 && e.retryAfter ? `Terlalu banyak percobaan. Coba lagi dalam ${e.retryAfter} detik.` : messageOf(e));
             }

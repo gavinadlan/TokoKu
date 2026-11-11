@@ -61,8 +61,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/payments/webhook", "/api/dev/**").permitAll() // webhook: signature dicek di service
                 // Realm: token toko (REALM_store) tidak bisa ke admin, token admin (REALM_admin) tidak bisa ke endpoint pembeli
                 .requestMatchers("/api/admin/auth/login", "/api/admin/auth/refresh", "/api/admin/auth/logout").permitAll()
-                .requestMatchers("/api/admin/**").access(allOf(hasRole("ADMIN"), hasAuthority(Realm.ADMIN.authority())))
-                .requestMatchers("/api/products/**", "/api/categories/**").access(allOf(hasRole("ADMIN"), hasAuthority(Realm.ADMIN.authority()))) // sisa method = tulis
+                // Admin dengan password sementara (klaim pwd_change) hanya boleh melihat profil dan mengganti password
+                .requestMatchers("/api/admin/me", "/api/admin/change-password").access(allOf(hasRole("ADMIN"), hasAuthority(Realm.ADMIN.authority())))
+                .requestMatchers("/api/admin/**").access(allOf(hasRole("ADMIN"), hasAuthority(Realm.ADMIN.authority()), passwordFinal()))
+                .requestMatchers("/api/products/**", "/api/categories/**").access(allOf(hasRole("ADMIN"), hasAuthority(Realm.ADMIN.authority()), passwordFinal())) // sisa method = tulis
                 .requestMatchers("/api/me", "/api/cart/**", "/api/orders/**", "/api/auth/change-password").hasAuthority(Realm.STORE.authority())
                 .anyRequest().authenticated())
             .exceptionHandling(e -> e.authenticationEntryPoint(unauthorized).accessDeniedHandler(forbidden))
@@ -82,9 +84,17 @@ public class SecurityConfig {
             String realm = jwt.getClaimAsString("realm");
             if (role != null) list.add(new SimpleGrantedAuthority("ROLE_" + role));
             if (realm != null) list.add(new SimpleGrantedAuthority("REALM_" + realm));
+            if (Boolean.TRUE.equals(jwt.getClaim("pwd_change"))) list.add(new SimpleGrantedAuthority(PWD_CHANGE));
             return list;
         });
         return converter;
+    }
+
+    private static final String PWD_CHANGE = "PWD_CHANGE_REQUIRED";
+
+    private static <T> org.springframework.security.authorization.AuthorizationManager<T> passwordFinal() {
+        return (auth, ctx) -> new org.springframework.security.authorization.AuthorizationDecision(
+                auth.get().getAuthorities().stream().noneMatch(a -> PWD_CHANGE.equals(a.getAuthority())));
     }
 
     @Bean

@@ -1,6 +1,6 @@
 import { decideAccess } from './guard';
 
-const user = { id: 1, email: 'a@b.c', name: 'A', role: 'USER' as const };
+const user = { id: 1, email: 'a@b.c', name: 'A', role: 'USER' as const, mustChangePassword: false };
 const admin = { ...user, role: 'ADMIN' as const };
 
 describe('decideAccess', () => {

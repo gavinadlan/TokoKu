@@ -1,0 +1,64 @@
+# Render Blueprint: backend (Docker, free) + frontend (static site). Database: Neon (di luar Render).
+# Nilai `sync: false` ditanya sekali saat Blueprint dibuat; isi lewat dashboard. Daftar lengkap: README, bagian "Environment variable".
+services:
+  - type: web
+    name: tokoku-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /actuator/health
+    autoDeployTrigger: off
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: JWT_SECRET
+        generateValue: true                 # rahasia, dibuat Render (256-bit)
+      - key: DATABASE_URL                   # jdbc:postgresql://<host-neon>/<db>?sslmode=require
+        sync: false
+      - key: DATABASE_USER
+        sync: false
+      - key: DATABASE_PASSWORD              # rahasia
+        sync: false
+      - key: APP_FRONTEND_BASE_URL          # URL static site, tanpa slash akhir
+        sync: false
+      - key: APP_CORS_ALLOWED_ORIGINS       # sama dengan URL static site
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD                 # rahasia, sementara: wajib diganti saat login pertama
+        sync: false
+      - key: APP_MAIL_PROVIDER              # Render free memblokir SMTP: pakai brevo (HTTPS)
+        value: brevo
+      - key: BREVO_API_KEY                  # rahasia
+        sync: false
+      - key: MAIL_FROM                      # pengirim terverifikasi di Brevo: Nama <alamat@domain>
+        sync: false
+      - key: MIDTRANS_SERVER_KEY            # rahasia
+        sync: false
+      - key: MIDTRANS_CLIENT_KEY
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET          # rahasia
+        sync: false
+      - key: APP_SEED_DEMO                  # opsional: produk contoh + toko demo bila katalog kosong
+        value: "false"
+      - key: DEMO_USER_PASSWORD             # opsional, rahasia: tanpa nilai = tanpa akun pembeli demo
+        sync: false
+
+  - type: web
+    name: tokoku-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_URL                   # URL tokoku-api, tanpa slash akhir; ditanam saat build
+        sync: false
+    routes:
+      - type: rewrite                       # SPA: semua jalur ke index.html
+        source: /*
+        destination: /index.html

@@ -43,9 +43,13 @@ app:
   admin:
     email: ${ADMIN_EMAIL:}
     password: ${ADMIN_PASSWORD:}
+    force-password-change: ${APP_ADMIN_FORCE_PASSWORD_CHANGE:true}   # false hanya untuk dev lokal/e2e
   mail:
     enabled: ${APP_MAIL_ENABLED:true}
-    from: ${MAIL_FROM:TokoKu <noreply@tokoku.local>}   # untuk Gmail: pakai alamat yang sama dengan MAIL_USERNAME
+    provider: ${APP_MAIL_PROVIDER:smtp}                # smtp | brevo | noop
+    brevo:
+      api-key: ${BREVO_API_KEY:}                        # rahasia
+    from: ${MAIL_FROM:TokoKu <noreply@tokoku.local>}   # smtp/Gmail: sama dengan MAIL_USERNAME; brevo: pengirim yang sudah terverifikasi di Brevo
   frontend:
     base-url: ${APP_FRONTEND_BASE_URL:http://localhost:5173}   # tujuan redirect setelah bayar; wajib URL publik di prod
   payment:
@@ -70,5 +74,9 @@ app:
       cloud-name: ${CLOUDINARY_CLOUD_NAME:}
       api-key: ${CLOUDINARY_API_KEY:}
       api-secret: ${CLOUDINARY_API_SECRET:}
+  seed:
+    demo: ${APP_SEED_DEMO:false}                        # produk contoh + toko demo; aman untuk prod
+    demo-user-email: ${DEMO_USER_EMAIL:demo@tokoku.example}
+    demo-user-password: ${DEMO_USER_PASSWORD:}          # rahasia; kosong = tanpa akun demo
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}

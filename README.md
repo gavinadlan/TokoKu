@@ -5,7 +5,7 @@ Proyek belajar bertahap. Dokumen produk dan infrastruktur: [docs/PRD.md](docs/PR
 Catatan keputusan: [docs/DECISIONS.md](docs/DECISIONS.md). Log kemajuan dan bukti verifikasi: [docs/PROGRESS.md](docs/PROGRESS.md).
 
 Backend lengkap (auth terpisah toko/admin, katalog dengan foto, keranjang, order kirim/ambil, pembayaran Midtrans, invoice PDF). Frontend belum ada: gunakan Swagger UI.
-Belum ada: cache Redis (opsional di PRD, dilewati), email, login Google, ongkir per zona atau API kurir.
+Belum ada: cache Redis (opsional di PRD, dilewati), login Google, ongkir per zona atau API kurir.
 
 ## Frontend
 
@@ -57,25 +57,32 @@ docker compose up --build
 | `DB_PORT` | opsional | - | Port host Postgres, default 5432 |
 | `DATABASE_URL` | default `jdbc:postgresql://localhost:5432/tokoku` | wajib | Format JDBC (Neon: tambah `?sslmode=require`) |
 | `DATABASE_USER` | default `tokoku` | wajib | |
-| `DATABASE_PASSWORD` | wajib | wajib | Tanpa default |
+| `DATABASE_PASSWORD` | wajib | wajib — **RAHASIA** | Tanpa default |
 | `SPRING_PROFILES_ACTIVE` | `dev` (seed data) | `prod` | |
 | `PORT` | - | otomatis (Render) | Default 8080 |
-| `JWT_SECRET` | opsional | **wajib**, min 32 byte | Kosong di dev = kunci acak sementara (token hangus saat restart). Buat: `openssl rand -base64 48` |
-| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | opsional | opsional | Admin awal, idempoten |
+| `JWT_SECRET` | opsional | **wajib** — **RAHASIA**, min 32 byte | Kosong di dev = kunci acak sementara (token hangus saat restart). Buat: `openssl rand -base64 48` |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | opsional | opsional; `ADMIN_PASSWORD` **RAHASIA** | Admin awal, idempoten; password awal sementara (wajib diganti) |
 | `MIDTRANS_CORE_API_URL` | opsional | `https://api.sandbox.midtrans.com/v2` | Status API; produksi `https://api.midtrans.com/v2` |
 | `APP_PAYMENT_RECONCILE_MS` | opsional | `300000` | Jeda rekonsiliasi berkala |
 | `APP_FRONTEND_BASE_URL` | wajib di prod | `http://localhost:5173` | URL publik frontend; dikirim sebagai `callbacks.finish` ke Midtrans (`{URL}/pembayaran/selesai`). Prod gagal start bila kosong/localhost |
 | `APP_MAIL_ENABLED` | opsional | `true` | `false` = email dimatikan (no-op) |
+| `APP_MAIL_PROVIDER` | `smtp` | `brevo` di Render | `smtp` \| `brevo` (API HTTPS) \| `noop`. Render free memblokir SMTP keluar |
+| `BREVO_API_KEY` | opsional | wajib jika `brevo` — **RAHASIA** | Kosong = no-op (dengan peringatan di log). Tidak pernah dicetak |
+| `APP_SEED_DEMO` | `false` | `false` | `true` = produk contoh + toko demo, hanya bila katalog kosong / toko belum diisi |
+| `DEMO_USER_EMAIL` | `demo@tokoku.example` | idem | Akun pembeli demo |
+| `DEMO_USER_PASSWORD` | kosong | kosong — **RAHASIA** | Kosong = akun demo tidak dibuat (tidak ada password bawaan) |
+| `APP_ADMIN_FORCE_PASSWORD_CHANGE` | `false` di `scripts/dev-backend.sh` | `true` | Admin dari `ADMIN_EMAIL`/`ADMIN_PASSWORD` wajib ganti password di login pertama |
+| `VITE_API_URL` | `http://localhost:8080` | URL backend | Frontend, dibaca saat **build** |
 | `MAIL_HOST`, `MAIL_PORT` | opsional | `smtp.gmail.com`, `587` | STARTTLS wajib |
-| `MAIL_USERNAME`, `MAIL_PASSWORD` | untuk email | kosong | Gmail + App Password; kosong = no-op |
+| `MAIL_USERNAME`, `MAIL_PASSWORD` | untuk email smtp | kosong; `MAIL_PASSWORD` **RAHASIA** | Gmail + App Password; kosong = no-op |
 | `MAIL_FROM` | opsional | `TokoKu <noreply@tokoku.local>` | Gmail menulis ulang pengirim ke akun Anda; isi alamat yang sama dengan `MAIL_USERNAME` |
 | `APP_CORS_ALLOWED_ORIGINS` | opsional | isi origin frontend | Dipisah koma |
 | `APP_PAYMENT_PROVIDER` | `midtrans` / `fake` | `midtrans` | `fake` ditolak di prod |
-| `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY` | wajib jika `midtrans` | wajib | App gagal start jika kosong |
+| `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY` | wajib jika `midtrans` | wajib; `MIDTRANS_SERVER_KEY` **RAHASIA** | App gagal start jika kosong |
 | `MIDTRANS_API_URL` | default Snap sandbox | isi URL Snap produksi bila live | |
 | `MIDTRANS_MERCHANT_ID`, `MIDTRANS_CORE_API_URL`, `MIDTRANS_USE_CORE_API` | - | - | Belum dipakai (kita memakai Snap) |
 | `APP_IMAGES_PROVIDER` | `fake` bila kunci Cloudinary kosong | `cloudinary` | `fake` dilarang di prod |
-| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | opsional | wajib jika `cloudinary` | App gagal start jika kosong |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | opsional | wajib jika `cloudinary`; `CLOUDINARY_API_SECRET` **RAHASIA** | App gagal start jika kosong |
 | `APP_ORDER_EXPIRY_MINUTES` | 60 | 60 | Kedaluwarsa order belum dibayar |
 | `APP_RATELIMIT_LOGIN_PER_EMAIL`, `APP_RATELIMIT_LOGIN_PER_IP` | 5 / 30 | 5 / 30 | Percobaan login toko per menit |
 | `APP_RATELIMIT_ADMIN_LOGIN_PER_EMAIL`, `APP_RATELIMIT_ADMIN_LOGIN_PER_IP` | 3 / 10 | 3 / 10 | Percobaan login admin per menit (terpisah dari toko) |
@@ -204,3 +211,15 @@ Detail: bagian "Infrastruktur & Deployment Gratis" di [docs/PRD.md](docs/PRD.md)
 - [ ] Dashboard Midtrans: Notification URL `https://<service>.onrender.com/api/payments/webhook`.
 - [ ] Buka `/swagger-ui.html`; request pertama setelah idle sekitar satu menit.
 - [ ] Ganti password admin awal; jangan pakai kunci sandbox untuk uang sungguhan.
+
+## Deploy gratis (Render + Neon)
+
+Blueprint: [`render.yaml`](render.yaml) (backend Docker `tokoku-api` + static site `tokoku-web` dengan rewrite SPA). Cabang `deploy-prep`; belum pernah dijalankan di Render (YAML belum divalidasi dengan `render blueprint validate`).
+
+1. **Neon**: buat project, salin koneksi **langsung** (bukan host `-pooler`; Flyway memakai advisory lock). `DATABASE_URL=jdbc:postgresql://<host>/<db>?sslmode=require`, user dan password terpisah di `DATABASE_USER`/`DATABASE_PASSWORD`. Pool Hikari prod 4 koneksi tanpa koneksi diam (Neon menutup koneksi menganggur); Flyway berjalan saat start dan mencoba ulang 5 kali sampai database bangun.
+2. **Brevo**: buat API key (v3), verifikasi pengirim, isi `BREVO_API_KEY` dan `MAIL_FROM` (`Nama <alamat-terverifikasi>`).
+3. **Render**: New > Blueprint, isi semua nilai `sync: false`. Isi `APP_FRONTEND_BASE_URL`, `APP_CORS_ALLOWED_ORIGINS` (URL `tokoku-web`) dan `VITE_API_URL` (URL `tokoku-api`) setelah URL kedua service diketahui; deploy ulang `tokoku-web` bila `VITE_API_URL` berubah.
+4. **Login pertama admin**: masuk di `/admin/masuk` dengan `ADMIN_PASSWORD`; halaman ganti password muncul otomatis dan seluruh API admin menolak (403) sampai password diganti.
+5. **Demo** (opsional): `APP_SEED_DEMO=true` (+ `DEMO_USER_PASSWORD` untuk akun pembeli demo), lalu kembalikan ke `false` setelah data terbentuk.
+
+Waktu start di container dan batas memori: lihat [docs/DECISIONS.md](docs/DECISIONS.md).

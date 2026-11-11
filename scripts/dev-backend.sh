@@ -30,6 +30,7 @@ set -a; source .dev-admin.env; set +a
 export DATABASE_PASSWORD="$DB_PASSWORD"
 export DATABASE_URL="jdbc:postgresql://localhost:${DB_PORT:-5432}/tokoku"
 export SPRING_PROFILES_ACTIVE=dev
+export APP_ADMIN_FORCE_PASSWORD_CHANGE=false   # admin lokal/e2e tidak dipaksa ganti password
 # Pembayaran: Midtrans bila kedua kunci ada di .env, kalau tidak fake. APP_PAYMENT_PROVIDER eksplisit selalu menang.
 if [ -z "${APP_PAYMENT_PROVIDER:-}" ]; then
   if [ -n "${MIDTRANS_SERVER_KEY:-}" ] && [ -n "${MIDTRANS_CLIENT_KEY:-}" ]; then

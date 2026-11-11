@@ -7,13 +7,18 @@ spring:
     username: ${DATABASE_USER}
     password: ${DATABASE_PASSWORD}
     hikari:
-      maximum-pool-size: 5
+      maximum-pool-size: 4        # Neon free: sambungan terbatas; satu instance kecil
+      minimum-idle: 0             # Neon bisa menutup koneksi menganggur (scale-to-zero)
       connection-timeout: 30000   # beri waktu saat database baru bangun
+      max-lifetime: 300000        # lebih pendek dari batas sisi server
+      idle-timeout: 120000
+      keepalive-time: 60000
   jpa:
     hibernate:
       ddl-auto: validate
   flyway:
     enabled: true
+    connect-retries: 5            # Flyway ikut menunggu Neon bangun (cold start)
 management:
   endpoints:
     web:

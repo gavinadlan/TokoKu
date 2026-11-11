@@ -28,16 +28,16 @@ public class JwtService {
 
     public String issue(User user, Realm realm) {
         Instant now = Instant.now();
-        JwtClaimsSet claims = JwtClaimsSet.builder()
+        JwtClaimsSet.Builder b = JwtClaimsSet.builder()
                 .issuer("tokoku")
                 .subject(String.valueOf(user.getId()))
                 .issuedAt(now)
                 .expiresAt(now.plus(ttl(realm)))
                 .claim("email", user.getEmail())
                 .claim("role", user.getRole().name())
-                .claim("realm", realm.claim())
-                .build();
-        return encoder.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();
+                .claim("realm", realm.claim());
+        if (user.isMustChangePassword()) b.claim("pwd_change", true); // SecurityConfig: hanya ganti password yang boleh
+        return encoder.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), b.build())).getTokenValue();
     }
 
     private Duration ttl(Realm realm) { return realm == Realm.ADMIN ? adminTtl : storeTtl; }

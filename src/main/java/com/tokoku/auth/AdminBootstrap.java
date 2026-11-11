@@ -18,9 +18,12 @@ public class AdminBootstrap implements ApplicationRunner {
     private final PasswordEncoder encoder;
     private final String email;
     private final String password;
+    private final boolean forceChange;
 
     public AdminBootstrap(UserRepository users, PasswordEncoder encoder,
-            @Value("${app.admin.email:}") String email, @Value("${app.admin.password:}") String password) {
+            @Value("${app.admin.email:}") String email, @Value("${app.admin.password:}") String password,
+            @Value("${app.admin.force-password-change:true}") boolean forceChange) {
+        this.forceChange = forceChange;
         this.users = users;
         this.encoder = encoder;
         this.email = email;
@@ -32,7 +35,9 @@ public class AdminBootstrap implements ApplicationRunner {
         if (email.isBlank() || password.isBlank() || users.existsByRole(Role.ADMIN)) {
             return;
         }
-        users.save(new User(email.trim().toLowerCase(), encoder.encode(password), "Admin", Role.ADMIN));
+        User admin = new User(email.trim().toLowerCase(), encoder.encode(password), "Admin", Role.ADMIN);
+        if (forceChange) admin.requirePasswordChange(); // password awal dari env dianggap sementara; hanya dev/e2e mematikan
+        users.save(admin);
         log.info("Bootstrap admin created");
     }
 }

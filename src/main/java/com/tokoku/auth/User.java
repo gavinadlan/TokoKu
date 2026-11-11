@@ -25,6 +25,9 @@ public class User {
     @Column(nullable = false)
     private Role role;
 
+    @Column(name = "must_change_password", nullable = false)
+    private boolean mustChangePassword;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -37,7 +40,13 @@ public class User {
         this.role = role;
     }
 
-    public void changePasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    public void changePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+        this.mustChangePassword = false;
+    }
+
+    public void requirePasswordChange() { this.mustChangePassword = true; }
+    public boolean isMustChangePassword() { return mustChangePassword; }
 
     public Long getId() { return id; }
     public String getEmail() { return email; }

@@ -335,6 +335,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ganti password admin; wajib untuk admin awal. */
+        post: operations["changePassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/uploads/sign": {
         parameters: {
             query?: never;
@@ -888,6 +905,7 @@ export interface components {
             name: string;
             /** @enum {string} */
             role: "USER" | "ADMIN";
+            mustChangePassword: boolean;
         };
         RefreshRequest: {
             refreshToken: string;

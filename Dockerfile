@@ -14,6 +14,6 @@ RUN useradd -r -u 1001 appuser
 COPY --from=build /workspace/target/*.jar app.jar
 USER appuser
 EXPOSE 8080
-# Batasi memori dan percepat startup untuk instance kecil
-ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=65 -XX:+UseSerialGC -Xss512k -XX:TieredStopAtLevel=1"
+# Aman untuk 512 MB (terukur: RSS ~340 MB; MaxMetaspaceSize 96m gagal start dengan OutOfMemoryError: Metaspace)
+ENV JAVA_TOOL_OPTIONS="-Xmx256m -XX:MaxMetaspaceSize=160m -XX:ReservedCodeCacheSize=48m -XX:+UseSerialGC -Xss512k -XX:TieredStopAtLevel=1 -XX:+ExitOnOutOfMemoryError"
 ENTRYPOINT ["java", "-jar", "app.jar"]

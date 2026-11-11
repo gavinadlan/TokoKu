@@ -76,6 +76,13 @@ public class AdminAuthController {
         return service.me(Long.valueOf(jwt.getSubject()));
     }
 
+    @Operation(summary = "Ganti password admin; wajib untuk admin awal. Mencabut semua refresh token, masuk ulang sesudahnya")
+    @PostMapping("/change-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void changePassword(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ChangePasswordRequest request) {
+        service.changePassword(Long.valueOf(jwt.getSubject()), request);
+    }
+
     /** Email disamarkan di log: huruf pertama dan domain saja. */
     static String mask(String email) {
         String e = email == null ? "" : email.trim();

@@ -38,6 +38,7 @@ const adminRoutes: RouteObject = {
   ErrorBoundary: RouteError,
   children: [
     { path: 'masuk', lazy: lazy(() => import('./pages/admin/AdminLogin'), 'AdminLoginPage') },
+    { path: 'ganti-password', lazy: lazy(() => import('./pages/admin/AdminChangePassword'), 'AdminChangePasswordPage') },
     {
       lazy: lazy(() => import('./pages/admin/AdminShell'), 'AdminShell'),
       children: [

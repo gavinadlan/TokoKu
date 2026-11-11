@@ -24,6 +24,8 @@ export function AdminShell() {
   if (decision === 'wait') return <div className="adm" style={{ minHeight: '100vh', padding: 'var(--s-7) var(--gutter)' }}><ListSkeleton /></div>;
   if (decision !== 'allow') return <Navigate to="/admin/masuk" replace state={{ from: location.pathname + location.search }} />;
 
+  if (user?.mustChangePassword) return <Navigate to="/admin/ganti-password" replace />;
+
   return (
     <div className="adm adm-shell">
       <a className="skip" href="#konten">
