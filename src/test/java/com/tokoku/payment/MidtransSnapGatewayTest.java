@@ -53,7 +53,9 @@ class MidtransSnapGatewayTest {
 
     private MidtransSnapGateway gateway() {
         return new MidtransSnapGateway(SERVER_KEY, "SB-Mid-client-EXAMPLE",
-                "http://127.0.0.1:" + server.getAddress().getPort() + "/snap/v1/transactions");
+                "http://127.0.0.1:" + server.getAddress().getPort() + "/snap/v1/transactions",
+                "https://tokoku.example.com/", "http://127.0.0.1:" + server.getAddress().getPort() + "/v2",
+                new org.springframework.mock.env.MockEnvironment());
     }
 
     private PaymentRequest request(String amount, String itemPrice) {
@@ -79,6 +81,70 @@ class MidtransSnapGatewayTest {
     }
 
     @Test
+    void sendsFinishCallbackToFrontendResultPage() {
+        gateway().createPayment(request("90000.00", "45000.00"));
+        assertThat(body.get()).contains("\"callbacks\":{\"finish\":\"https://tokoku.example.com/pembayaran/selesai\"}");
+    }
+
+    @Test
+    void prodRejectsEmptyOrLocalhostFrontendUrl() {
+        var prod = new org.springframework.mock.env.MockEnvironment().withProperty("spring.profiles.active", "prod");
+        prod.setActiveProfiles("prod");
+        for (String url : new String[] { "", "http://localhost:5173", "http://127.0.0.1:3000" }) {
+            assertThatThrownBy(() -> new MidtransSnapGateway("k", "c", "http://x", url, "http://x", prod))
+                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("APP_FRONTEND_BASE_URL");
+        }
+        new MidtransSnapGateway("k", "c", "http://x", "https://tokoku.example.com", "http://x", prod);
+    }
+
+    @Test
+    void statusApiCallsDocumentedPathWithBasicAuthAndMapsFields() {
+        responseJson = "{\"status_code\":\"200\",\"transaction_status\":\"settlement\",\"fraud_status\":\"accept\","
+                + "\"order_id\":\"TKU-7-abcd1234\",\"gross_amount\":\"90000.00\",\"payment_type\":\"qris\",\"transaction_id\":\"tx-1\","
+                + "\"signature_key\":\"sig\"}";
+        status = 200;
+        var n = gateway().fetchStatus("TKU-7-abcd1234").orElseThrow();
+        assertThat(path.get()).isEqualTo("/v2/TKU-7-abcd1234/status");
+        assertThat(auth.get()).isEqualTo("Basic " + Base64.getEncoder().encodeToString((SERVER_KEY + ":").getBytes(StandardCharsets.UTF_8)));
+        assertThat(n.orderId()).isEqualTo("TKU-7-abcd1234");
+        assertThat(n.transactionStatus()).isEqualTo("settlement");
+        assertThat(n.grossAmount()).isEqualTo("90000.00");
+        assertThat(n.paymentType()).isEqualTo("qris");
+        assertThat(n.fraudStatus()).isEqualTo("accept");
+    }
+
+    @Test
+    void statusApiNotFoundInBodyOrHttpIsEmpty() {
+        responseJson = "{\"status_code\":\"404\",\"status_message\":\"Transaction doesn't exist.\",\"id\":\"x\"}";
+        status = 200;
+        assertThat(gateway().fetchStatus("TKU-7-abcd1234")).isEmpty();
+        status = 404;
+        assertThat(gateway().fetchStatus("TKU-7-abcd1234")).isEmpty();
+    }
+
+    @Test
+    void statusApiRejectsResponseForAnotherOrderAndServerErrors() {
+        responseJson = "{\"status_code\":\"200\",\"transaction_status\":\"settlement\",\"order_id\":\"TKU-9-ffff0000\",\"gross_amount\":\"1.00\"}";
+        status = 200;
+        assertThatThrownBy(() -> gateway().fetchStatus("TKU-7-abcd1234")).isInstanceOf(PaymentGatewayException.class);
+        status = 500;
+        assertThatThrownBy(() -> gateway().fetchStatus("TKU-7-abcd1234")).isInstanceOf(PaymentGatewayException.class)
+                .hasMessageNotContaining(SERVER_KEY);
+    }
+
+    @Test
+    void shippingFeeIsItsOwnLineAndGrossAmountIncludesIt() {
+        PaymentRequest r = new PaymentRequest("TKU-8-abcd1234", new BigDecimal("105000.00"),
+                List.of(new Item("P1", "Kopi Arabika Gayo 250g", new BigDecimal("45000.00"), 2),
+                        new Item("SHIPPING", "Biaya kirim", new BigDecimal("15000.00"), 1)),
+                "Budi", "budi@example.com", "08123456789", 60);
+        gateway().createPayment(r);
+
+        assertThat(body.get()).contains("\"gross_amount\":105000").contains("\"id\":\"SHIPPING\"")
+                .contains("\"name\":\"Biaya kirim\"").contains("\"price\":15000");
+    }
+
+    @Test
     void rejectsFractionalRupiahAndMismatchedTotals() {
         assertThatThrownBy(() -> gateway().createPayment(request("90000.50", "45000.25")))
                 .isInstanceOf(PaymentGatewayException.class);
@@ -98,7 +164,7 @@ class MidtransSnapGatewayTest {
 
     @Test
     void blankKeysFailFastWithClearMessage() {
-        assertThatThrownBy(() -> new MidtransSnapGateway("", "", "http://x"))
+        assertThatThrownBy(() -> new MidtransSnapGateway("", "", "http://x", "http://localhost:5173", "http://x", new org.springframework.mock.env.MockEnvironment()))
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("MIDTRANS_SERVER_KEY");
     }
 
@@ -109,8 +175,8 @@ class MidtransSnapGatewayTest {
         assertThat(MidtransSignature.compute("ORDER-101", "200", "1000.00", SERVER_KEY)).isEqualTo(expected);
 
         var gw = gateway();
-        assertThat(gw.verifySignature(new Notification("ORDER-101", "200", "1000.00", expected, "settlement", null, "t"))).isTrue();
-        assertThat(gw.verifySignature(new Notification("ORDER-101", "200", "1000.01", expected, "settlement", null, "t"))).isFalse();
-        assertThat(gw.verifySignature(new Notification("ORDER-101", "200", "1000.00", null, "settlement", null, "t"))).isFalse();
+        assertThat(gw.verifySignature(new Notification("ORDER-101", "200", "1000.00", expected, "settlement", null, "t", null))).isTrue();
+        assertThat(gw.verifySignature(new Notification("ORDER-101", "200", "1000.01", expected, "settlement", null, "t", null))).isFalse();
+        assertThat(gw.verifySignature(new Notification("ORDER-101", "200", "1000.00", null, "settlement", null, "t", null))).isFalse();
     }
 }

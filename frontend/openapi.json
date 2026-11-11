@@ -42,6 +42,10 @@
             "description": "Pembayaran Midtrans dan webhook"
         },
         {
+            "name": "Toko",
+            "description": "Info dan pengaturan toko"
+        },
+        {
             "name": "Admin",
             "description": "Khusus role ADMIN"
         },
@@ -284,6 +288,98 @@
                 }
             }
         },
+        "/api/admin/store-settings": {
+            "get": {
+                "tags": [
+                    "Toko"
+                ],
+                "summary": "Pengaturan toko lengkap (ADMIN)",
+                "operationId": "adminStore",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AdminStoreResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Toko"
+                ],
+                "summary": "Ubah pengaturan toko (ADMIN)",
+                "operationId": "update_3",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreSettingsRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AdminStoreResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/products/{id}/images/order": {
+            "put": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Ubah urutan foto: daftar semua id foto sesuai urutan baru (ADMIN)",
+                "operationId": "reorder",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReorderRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProductResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/products": {
             "get": {
                 "tags": [
@@ -502,6 +598,38 @@
                 "responses": {
                     "201": {
                         "description": "Created",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OrderResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/orders/{id}/payment/refresh": {
+            "post": {
+                "tags": [
+                    "Pembayaran"
+                ],
+                "summary": "Periksa status pembayaran ke provider (tanpa menunggu webhook); pemilik order saja, dibatasi per pengguna",
+                "operationId": "refresh",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "content": {
                             "*/*": {
                                 "schema": {
@@ -740,7 +868,7 @@
                     "Auth"
                 ],
                 "summary": "Tukar refresh token dengan access token baru; refresh token lama dicabut (rotasi)",
-                "operationId": "refresh",
+                "operationId": "refresh_1",
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -847,6 +975,182 @@
                 }
             }
         },
+        "/api/admin/uploads/sign": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Tanda tangan unggah langsung ke penyimpanan gambar (ADMIN)",
+                "operationId": "sign",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UploadSignature"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/products/{id}/images": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Daftarkan foto yang sudah diunggah; signature diverifikasi, maksimal 6 foto (ADMIN)",
+                "operationId": "register_1",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegisterImageRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProductResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/change-password": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Ganti password admin; wajib untuk admin awal. Mencabut semua refresh token, masuk ulang sesudahnya",
+                "operationId": "changePassword_1",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ChangePasswordRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/api/admin/auth/refresh": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Tukar refresh token admin (rotasi); token toko ditolak",
+                "operationId": "refresh_2",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RefreshRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TokenResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
+        "/api/admin/auth/logout": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Logout admin: cabut refresh token (idempoten)",
+                "operationId": "logout_1",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RefreshRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                },
+                "security": []
+            }
+        },
+        "/api/admin/auth/login": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Login admin (hanya akun ADMIN; akun pembeli mendapat 401 generik)",
+                "operationId": "login_1",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TokenResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
         "/api/products/{id}/stock": {
             "patch": {
                 "tags": [
@@ -875,6 +1179,47 @@
                     },
                     "required": true
                 },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProductResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/products/{id}/images/{imageId}/primary": {
+            "patch": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Jadikan foto utama (ADMIN)",
+                "operationId": "primary",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "imageId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -931,6 +1276,28 @@
                 }
             }
         },
+        "/api/store": {
+            "get": {
+                "tags": [
+                    "Toko"
+                ],
+                "summary": "Info toko untuk publik (alamat, jam buka, pengambilan, biaya kirim)",
+                "operationId": "publicStore",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PublicStoreResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": []
+            }
+        },
         "/api/orders/{id}": {
             "get": {
                 "tags": [
@@ -956,6 +1323,39 @@
                             "*/*": {
                                 "schema": {
                                     "$ref": "#/components/schemas/OrderResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/orders/{id}/invoice": {
+            "get": {
+                "tags": [
+                    "Order"
+                ],
+                "summary": "Invoice PDF order sendiri (hanya order yang sudah dibayar; 409 bila belum)",
+                "operationId": "mine",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/pdf": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
                                 }
                             }
                         }
@@ -1090,6 +1490,38 @@
                 }
             }
         },
+        "/api/admin/products/{id}": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Detail produk apa pun termasuk nonaktif, lengkap dengan foto (ADMIN)",
+                "operationId": "get_3",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProductResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/orders": {
             "get": {
                 "tags": [
@@ -1109,6 +1541,7 @@
                                 "PAID",
                                 "PROCESSING",
                                 "SHIPPED",
+                                "READY_FOR_PICKUP",
                                 "COMPLETED",
                                 "CANCELLED"
                             ]
@@ -1172,7 +1605,7 @@
                     "Admin"
                 ],
                 "summary": "Detail order apa pun (ADMIN)",
-                "operationId": "get_3",
+                "operationId": "get_4",
                 "parameters": [
                     {
                         "name": "id",
@@ -1191,6 +1624,133 @@
                             "*/*": {
                                 "schema": {
                                     "$ref": "#/components/schemas/OrderResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/orders/{id}/invoice": {
+            "get": {
+                "tags": [
+                    "Order"
+                ],
+                "summary": "Invoice PDF order apa pun (ADMIN)",
+                "operationId": "admin",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/pdf": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/orders/summary": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Ringkasan ringan untuk polling: jumlah order PAID dan yang dibayar sejak waktu tertentu (ADMIN)",
+                "operationId": "summary",
+                "parameters": [
+                    {
+                        "name": "since",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OrderSummaryResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/me": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Profil admin yang sedang masuk",
+                "operationId": "me_1",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/admin/products/{id}/images/{imageId}": {
+            "delete": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Hapus foto; penghapusan di penyimpanan best-effort (ADMIN)",
+                "operationId": "delete_1",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "imageId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProductResponse"
                                 }
                             }
                         }
@@ -1224,18 +1784,63 @@
                         "type": "integer",
                         "format": "int32",
                         "minimum": 0
-                    },
-                    "imageUrl": {
-                        "type": "string",
-                        "maxLength": 500,
-                        "minLength": 0,
-                        "pattern": "^(https?://\\S+)?$"
                     }
                 },
                 "required": [
                     "categoryId",
                     "name",
                     "price"
+                ]
+            },
+            "ProductImageResponse": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "primary": {
+                        "type": "boolean"
+                    },
+                    "position": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "width": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "format": "int32"
+                    },
+                    "height": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "format": "int32"
+                    },
+                    "thumbnailUrl": {
+                        "type": "string"
+                    },
+                    "cardUrl": {
+                        "type": "string"
+                    },
+                    "detailUrl": {
+                        "type": "string"
+                    },
+                    "largeUrl": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "cardUrl",
+                    "detailUrl",
+                    "id",
+                    "largeUrl",
+                    "position",
+                    "primary",
+                    "thumbnailUrl"
                 ]
             },
             "ProductResponse": {
@@ -1276,6 +1881,12 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "images": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProductImageResponse"
+                        }
                     }
                 },
                 "required": [
@@ -1283,6 +1894,7 @@
                     "categoryId",
                     "categoryName",
                     "id",
+                    "images",
                     "name",
                     "price",
                     "stock"
@@ -1401,6 +2013,155 @@
                     "totalQuantity"
                 ]
             },
+            "StoreSettingsRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 100,
+                        "minLength": 0
+                    },
+                    "address": {
+                        "type": "string",
+                        "maxLength": 300,
+                        "minLength": 0
+                    },
+                    "phone": {
+                        "type": "string",
+                        "maxLength": 40,
+                        "minLength": 0
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 150,
+                        "minLength": 0
+                    },
+                    "openingHours": {
+                        "type": "string",
+                        "maxLength": 200,
+                        "minLength": 0
+                    },
+                    "pickupInstructions": {
+                        "type": "string",
+                        "maxLength": 500,
+                        "minLength": 0
+                    },
+                    "deliveryEnabled": {
+                        "type": "boolean"
+                    },
+                    "pickupEnabled": {
+                        "type": "boolean"
+                    },
+                    "flatShippingFee": {
+                        "type": "number",
+                        "minimum": 0
+                    },
+                    "freeShippingThreshold": {
+                        "type": "number",
+                        "minimum": 0
+                    },
+                    "invoiceFooter": {
+                        "type": "string",
+                        "maxLength": 500,
+                        "minLength": 0
+                    },
+                    "taxId": {
+                        "type": "string",
+                        "maxLength": 60,
+                        "minLength": 0
+                    },
+                    "taxNote": {
+                        "type": "string",
+                        "maxLength": 200,
+                        "minLength": 0
+                    }
+                },
+                "required": [
+                    "address",
+                    "name",
+                    "phone"
+                ]
+            },
+            "AdminStoreResponse": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "address": {
+                        "type": "string"
+                    },
+                    "phone": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "openingHours": {
+                        "type": "string"
+                    },
+                    "pickupInstructions": {
+                        "type": "string"
+                    },
+                    "deliveryEnabled": {
+                        "type": "boolean"
+                    },
+                    "pickupEnabled": {
+                        "type": "boolean"
+                    },
+                    "flatShippingFee": {
+                        "type": "number"
+                    },
+                    "freeShippingThreshold": {
+                        "type": "number"
+                    },
+                    "invoiceFooter": {
+                        "type": "string"
+                    },
+                    "taxId": {
+                        "type": "string"
+                    },
+                    "taxNote": {
+                        "type": "string"
+                    },
+                    "configured": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "address",
+                    "configured",
+                    "deliveryEnabled",
+                    "email",
+                    "flatShippingFee",
+                    "freeShippingThreshold",
+                    "invoiceFooter",
+                    "name",
+                    "openingHours",
+                    "phone",
+                    "pickupEnabled",
+                    "pickupInstructions",
+                    "taxId",
+                    "taxNote"
+                ]
+            },
+            "ReorderRequest": {
+                "type": "object",
+                "properties": {
+                    "imageIds": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer",
+                            "format": "int64"
+                        },
+                        "minItems": 1
+                    }
+                },
+                "required": [
+                    "imageIds"
+                ]
+            },
             "WebhookResult": {
                 "type": "object",
                 "properties": {
@@ -1415,6 +2176,13 @@
             "CheckoutRequest": {
                 "type": "object",
                 "properties": {
+                    "fulfillmentType": {
+                        "type": "string",
+                        "enum": [
+                            "DELIVERY",
+                            "PICKUP"
+                        ]
+                    },
                     "shippingName": {
                         "type": "string",
                         "maxLength": 100,
@@ -1432,7 +2200,6 @@
                     }
                 },
                 "required": [
-                    "shippingAddress",
                     "shippingName",
                     "shippingPhone"
                 ]
@@ -1484,9 +2251,23 @@
                             "PAID",
                             "PROCESSING",
                             "SHIPPED",
+                            "READY_FOR_PICKUP",
                             "COMPLETED",
                             "CANCELLED"
                         ]
+                    },
+                    "fulfillmentType": {
+                        "type": "string",
+                        "enum": [
+                            "DELIVERY",
+                            "PICKUP"
+                        ]
+                    },
+                    "subtotal": {
+                        "type": "number"
+                    },
+                    "shippingFee": {
+                        "type": "number"
                     },
                     "totalAmount": {
                         "type": "number"
@@ -1498,7 +2279,48 @@
                         "type": "string"
                     },
                     "shippingAddress": {
-                        "type": "string"
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "courier": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "trackingNumber": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "pickupCode": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "pickupReadyAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "invoiceNumber": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "invoicedAt": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
                     },
                     "createdAt": {
                         "type": "string",
@@ -1513,12 +2335,14 @@
                 },
                 "required": [
                     "createdAt",
+                    "fulfillmentType",
                     "id",
                     "items",
-                    "shippingAddress",
+                    "shippingFee",
                     "shippingName",
                     "shippingPhone",
                     "status",
+                    "subtotal",
                     "totalAmount",
                     "userId"
                 ]
@@ -1660,11 +2484,15 @@
                             "USER",
                             "ADMIN"
                         ]
+                    },
+                    "mustChangePassword": {
+                        "type": "boolean"
                     }
                 },
                 "required": [
                     "email",
                     "id",
+                    "mustChangePassword",
                     "name",
                     "role"
                 ]
@@ -1744,6 +2572,82 @@
                     "newPassword"
                 ]
             },
+            "UploadSignature": {
+                "type": "object",
+                "properties": {
+                    "uploadUrl": {
+                        "type": "string"
+                    },
+                    "apiKey": {
+                        "type": "string"
+                    },
+                    "timestamp": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "folder": {
+                        "type": "string"
+                    },
+                    "allowedFormats": {
+                        "type": "string"
+                    },
+                    "signature": {
+                        "type": "string"
+                    },
+                    "provider": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "allowedFormats",
+                    "apiKey",
+                    "folder",
+                    "provider",
+                    "signature",
+                    "timestamp",
+                    "uploadUrl"
+                ]
+            },
+            "RegisterImageRequest": {
+                "type": "object",
+                "properties": {
+                    "publicId": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "version": {
+                        "type": "integer",
+                        "format": "int64",
+                        "minimum": 1
+                    },
+                    "signature": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "width": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "height": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "format": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "bytes": {
+                        "type": "integer",
+                        "format": "int64",
+                        "minimum": 1
+                    }
+                },
+                "required": [
+                    "format",
+                    "publicId",
+                    "signature"
+                ]
+            },
             "StockRequest": {
                 "type": "object",
                 "properties": {
@@ -1764,13 +2668,80 @@
                             "PAID",
                             "PROCESSING",
                             "SHIPPED",
+                            "READY_FOR_PICKUP",
                             "COMPLETED",
                             "CANCELLED"
                         ]
+                    },
+                    "courier": {
+                        "type": "string",
+                        "maxLength": 50,
+                        "minLength": 0
+                    },
+                    "trackingNumber": {
+                        "type": "string",
+                        "maxLength": 60,
+                        "minLength": 0
+                    },
+                    "pickupCode": {
+                        "type": "string",
+                        "maxLength": 20,
+                        "minLength": 0
                     }
                 },
                 "required": [
                     "status"
+                ]
+            },
+            "PublicStoreResponse": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "address": {
+                        "type": "string"
+                    },
+                    "phone": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "openingHours": {
+                        "type": "string"
+                    },
+                    "pickupInstructions": {
+                        "type": "string"
+                    },
+                    "deliveryEnabled": {
+                        "type": "boolean"
+                    },
+                    "pickupEnabled": {
+                        "type": "boolean"
+                    },
+                    "flatShippingFee": {
+                        "type": "number"
+                    },
+                    "freeShippingThreshold": {
+                        "type": "number"
+                    },
+                    "configured": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "address",
+                    "configured",
+                    "deliveryEnabled",
+                    "email",
+                    "flatShippingFee",
+                    "freeShippingThreshold",
+                    "name",
+                    "openingHours",
+                    "phone",
+                    "pickupEnabled",
+                    "pickupInstructions"
                 ]
             },
             "PageMetadata": {
@@ -1834,6 +2805,28 @@
                 "required": [
                     "content",
                     "page"
+                ]
+            },
+            "OrderSummaryResponse": {
+                "type": "object",
+                "properties": {
+                    "needsAction": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "paidSince": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "serverTime": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "needsAction",
+                    "paidSince",
+                    "serverTime"
                 ]
             }
         },

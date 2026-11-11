@@ -59,6 +59,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/store-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pengaturan toko lengkap (ADMIN) */
+        get: operations["adminStore"];
+        /** Ubah pengaturan toko (ADMIN) */
+        put: operations["update_3"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/products/{id}/images/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Ubah urutan foto: daftar semua id foto sesuai urutan baru (ADMIN) */
+        put: operations["reorder"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/products": {
         parameters: {
             query?: never;
@@ -106,6 +141,23 @@ export interface paths {
         put?: never;
         /** Checkout dari keranjang: stok dikurangi atomik, order PENDING_PAYMENT */
         post: operations["checkout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/{id}/payment/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Periksa status pembayaran ke provider (tanpa menunggu webhook); pemilik order saja, dibatasi per pengguna */
+        post: operations["refresh"];
         delete?: never;
         options?: never;
         head?: never;
@@ -225,7 +277,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Tukar refresh token dengan access token baru; refresh token lama dicabut (rotasi) */
-        post: operations["refresh"];
+        post: operations["refresh_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -283,6 +335,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/uploads/sign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tanda tangan unggah langsung ke penyimpanan gambar (ADMIN) */
+        post: operations["sign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/products/{id}/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Daftarkan foto yang sudah diunggah; signature diverifikasi, maksimal 6 foto (ADMIN) */
+        post: operations["register_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ganti password admin; wajib untuk admin awal. Mencabut semua refresh token, masuk ulang sesudahnya */
+        post: operations["changePassword_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tukar refresh token admin (rotasi); token toko ditolak */
+        post: operations["refresh_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Logout admin: cabut refresh token (idempoten) */
+        post: operations["logout_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Login admin (hanya akun ADMIN; akun pembeli mendapat 401 generik) */
+        post: operations["login_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/products/{id}/stock": {
         parameters: {
             query?: never;
@@ -298,6 +452,23 @@ export interface paths {
         head?: never;
         /** Atur stok produk (ADMIN) */
         patch: operations["updateStock"];
+        trace?: never;
+    };
+    "/api/admin/products/{id}/images/{imageId}/primary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Jadikan foto utama (ADMIN) */
+        patch: operations["primary"];
         trace?: never;
     };
     "/api/admin/orders/{id}/status": {
@@ -317,6 +488,23 @@ export interface paths {
         patch: operations["changeStatus"];
         trace?: never;
     };
+    "/api/store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Info toko untuk publik (alamat, jam buka, pengambilan, biaya kirim) */
+        get: operations["publicStore"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/orders/{id}": {
         parameters: {
             query?: never;
@@ -326,6 +514,23 @@ export interface paths {
         };
         /** Detail order sendiri (order orang lain = 404) */
         get: operations["get_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/{id}/invoice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Invoice PDF order sendiri (hanya order yang sudah dibayar; 409 bila belum) */
+        get: operations["mine"];
         put?: never;
         post?: never;
         delete?: never;
@@ -385,6 +590,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/products/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detail produk apa pun termasuk nonaktif, lengkap dengan foto (ADMIN) */
+        get: operations["get_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/orders": {
         parameters: {
             query?: never;
@@ -410,10 +632,78 @@ export interface paths {
             cookie?: never;
         };
         /** Detail order apa pun (ADMIN) */
-        get: operations["get_3"];
+        get: operations["get_4"];
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/orders/{id}/invoice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Invoice PDF order apa pun (ADMIN) */
+        get: operations["admin"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/orders/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ringkasan ringan untuk polling: jumlah order PAID dan yang dibayar sejak waktu tertentu (ADMIN) */
+        get: operations["summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Profil admin yang sedang masuk */
+        get: operations["me_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/products/{id}/images/{imageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Hapus foto; penghapusan di penyimpanan best-effort (ADMIN) */
+        delete: operations["delete_1"];
         options?: never;
         head?: never;
         patch?: never;
@@ -431,7 +721,21 @@ export interface components {
             price: number;
             /** Format: int32 */
             stock?: number;
-            imageUrl?: string;
+        };
+        ProductImageResponse: {
+            /** Format: int64 */
+            id: number;
+            primary: boolean;
+            /** Format: int32 */
+            position: number;
+            /** Format: int32 */
+            width?: number | null;
+            /** Format: int32 */
+            height?: number | null;
+            thumbnailUrl: string;
+            cardUrl: string;
+            detailUrl: string;
+            largeUrl: string;
         };
         ProductResponse: {
             /** Format: int64 */
@@ -446,6 +750,7 @@ export interface components {
             stock: number;
             active: boolean;
             imageUrl?: string | null;
+            images: components["schemas"]["ProductImageResponse"][];
         };
         CategoryRequest: {
             name: string;
@@ -481,13 +786,50 @@ export interface components {
             totalQuantity: number;
             total: number;
         };
+        StoreSettingsRequest: {
+            name: string;
+            address: string;
+            phone: string;
+            /** Format: email */
+            email?: string;
+            openingHours?: string;
+            pickupInstructions?: string;
+            deliveryEnabled?: boolean;
+            pickupEnabled?: boolean;
+            flatShippingFee?: number;
+            freeShippingThreshold?: number;
+            invoiceFooter?: string;
+            taxId?: string;
+            taxNote?: string;
+        };
+        AdminStoreResponse: {
+            name: string;
+            address: string;
+            phone: string;
+            email: string;
+            openingHours: string;
+            pickupInstructions: string;
+            deliveryEnabled: boolean;
+            pickupEnabled: boolean;
+            flatShippingFee: number;
+            freeShippingThreshold: number;
+            invoiceFooter: string;
+            taxId: string;
+            taxNote: string;
+            configured: boolean;
+        };
+        ReorderRequest: {
+            imageIds: number[];
+        };
         WebhookResult: {
             status: string;
         };
         CheckoutRequest: {
+            /** @enum {string} */
+            fulfillmentType?: "DELIVERY" | "PICKUP";
             shippingName: string;
             shippingPhone: string;
-            shippingAddress: string;
+            shippingAddress?: string;
         };
         OrderItemResponse: {
             /** Format: int64 */
@@ -504,11 +846,23 @@ export interface components {
             /** Format: int64 */
             userId: number;
             /** @enum {string} */
-            status: "PENDING_PAYMENT" | "PAID" | "PROCESSING" | "SHIPPED" | "COMPLETED" | "CANCELLED";
+            status: "PENDING_PAYMENT" | "PAID" | "PROCESSING" | "SHIPPED" | "READY_FOR_PICKUP" | "COMPLETED" | "CANCELLED";
+            /** @enum {string} */
+            fulfillmentType: "DELIVERY" | "PICKUP";
+            subtotal: number;
+            shippingFee: number;
             totalAmount: number;
             shippingName: string;
             shippingPhone: string;
-            shippingAddress: string;
+            shippingAddress?: string | null;
+            courier?: string | null;
+            trackingNumber?: string | null;
+            pickupCode?: string | null;
+            /** Format: date-time */
+            pickupReadyAt?: string | null;
+            invoiceNumber?: string | null;
+            /** Format: date-time */
+            invoicedAt?: string | null;
             /** Format: date-time */
             createdAt: string;
             items: components["schemas"]["OrderItemResponse"][];
@@ -551,6 +905,7 @@ export interface components {
             name: string;
             /** @enum {string} */
             role: "USER" | "ADMIN";
+            mustChangePassword: boolean;
         };
         RefreshRequest: {
             refreshToken: string;
@@ -571,13 +926,52 @@ export interface components {
             currentPassword: string;
             newPassword: string;
         };
+        UploadSignature: {
+            uploadUrl: string;
+            apiKey: string;
+            /** Format: int64 */
+            timestamp: number;
+            folder: string;
+            allowedFormats: string;
+            signature: string;
+            provider: string;
+        };
+        RegisterImageRequest: {
+            publicId: string;
+            /** Format: int64 */
+            version?: number;
+            signature: string;
+            /** Format: int32 */
+            width?: number;
+            /** Format: int32 */
+            height?: number;
+            format: string;
+            /** Format: int64 */
+            bytes?: number;
+        };
         StockRequest: {
             /** Format: int32 */
             stock?: number;
         };
         StatusRequest: {
             /** @enum {string} */
-            status: "PENDING_PAYMENT" | "PAID" | "PROCESSING" | "SHIPPED" | "COMPLETED" | "CANCELLED";
+            status: "PENDING_PAYMENT" | "PAID" | "PROCESSING" | "SHIPPED" | "READY_FOR_PICKUP" | "COMPLETED" | "CANCELLED";
+            courier?: string;
+            trackingNumber?: string;
+            pickupCode?: string;
+        };
+        PublicStoreResponse: {
+            name: string;
+            address: string;
+            phone: string;
+            email: string;
+            openingHours: string;
+            pickupInstructions: string;
+            deliveryEnabled: boolean;
+            pickupEnabled: boolean;
+            flatShippingFee: number;
+            freeShippingThreshold: number;
+            configured: boolean;
         };
         PageMetadata: {
             /** Format: int64 */
@@ -596,6 +990,14 @@ export interface components {
         PagedModelOrderResponse: {
             content: components["schemas"]["OrderResponse"][];
             page: components["schemas"]["PageMetadata"];
+        };
+        OrderSummaryResponse: {
+            /** Format: int64 */
+            needsAction: number;
+            /** Format: int64 */
+            paidSince: number;
+            /** Format: date-time */
+            serverTime: string;
         };
     };
     responses: never;
@@ -768,6 +1170,76 @@ export interface operations {
             };
         };
     };
+    adminStore: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AdminStoreResponse"];
+                };
+            };
+        };
+    };
+    update_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AdminStoreResponse"];
+                };
+            };
+        };
+    };
+    reorder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProductResponse"];
+                };
+            };
+        };
+    };
     list: {
         parameters: {
             query?: {
@@ -889,6 +1361,28 @@ export interface operations {
         responses: {
             /** @description Created */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrderResponse"];
+                };
+            };
+        };
+    };
+    refresh: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1058,7 +1552,7 @@ export interface operations {
             };
         };
     };
-    refresh: {
+    refresh_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -1150,6 +1644,144 @@ export interface operations {
             };
         };
     };
+    sign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UploadSignature"];
+                };
+            };
+        };
+    };
+    register_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterImageRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProductResponse"];
+                };
+            };
+        };
+    };
+    changePassword_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    refresh_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TokenResponse"];
+                };
+            };
+        };
+    };
+    logout_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    login_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TokenResponse"];
+                };
+            };
+        };
+    };
     updateStock: {
         parameters: {
             query?: never;
@@ -1164,6 +1796,29 @@ export interface operations {
                 "application/json": components["schemas"]["StockRequest"];
             };
         };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProductResponse"];
+                };
+            };
+        };
+    };
+    primary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                imageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -1202,6 +1857,26 @@ export interface operations {
             };
         };
     };
+    publicStore: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublicStoreResponse"];
+                };
+            };
+        };
+    };
     get_1: {
         parameters: {
             query?: never;
@@ -1220,6 +1895,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["OrderResponse"];
+                };
+            };
+        };
+    };
+    mine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
                 };
             };
         };
@@ -1294,10 +1991,32 @@ export interface operations {
             };
         };
     };
+    get_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProductResponse"];
+                };
+            };
+        };
+    };
     list_4: {
         parameters: {
             query?: {
-                status?: "PENDING_PAYMENT" | "PAID" | "PROCESSING" | "SHIPPED" | "COMPLETED" | "CANCELLED";
+                status?: "PENDING_PAYMENT" | "PAID" | "PROCESSING" | "SHIPPED" | "READY_FOR_PICKUP" | "COMPLETED" | "CANCELLED";
                 /** @description Zero-based page index (0..N) */
                 page?: number;
                 /** @description The size of the page to be returned */
@@ -1322,7 +2041,7 @@ export interface operations {
             };
         };
     };
-    get_3: {
+    get_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -1340,6 +2059,93 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["OrderResponse"];
+                };
+            };
+        };
+    };
+    admin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+        };
+    };
+    summary: {
+        parameters: {
+            query?: {
+                since?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrderSummaryResponse"];
+                };
+            };
+        };
+    };
+    me_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserResponse"];
+                };
+            };
+        };
+    };
+    delete_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                imageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ProductResponse"];
                 };
             };
         };

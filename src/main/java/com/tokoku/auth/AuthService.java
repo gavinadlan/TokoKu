@@ -36,10 +36,20 @@ public class AuthService {
 
     @Transactional
     public TokenResponse login(LoginRequest r) {
+        return login(r, Realm.STORE);
+    }
+
+    /**
+     * Login per realm. Akun dengan peran yang salah mendapat pesan yang sama dengan password salah,
+     * supaya endpoint ini tidak membocorkan peran sebuah akun.
+     */
+    @Transactional
+    public TokenResponse login(LoginRequest r, Realm realm) {
         User u = users.findByEmail(r.email().trim().toLowerCase())
                 .filter(found -> encoder.matches(r.password(), found.getPasswordHash()))
+                .filter(found -> AuthRules.allows(found, realm))
                 .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
-        return new TokenResponse(jwt.issue(u), "Bearer", jwt.ttlSeconds(), refreshTokens.issue(u.getId()), UserResponse.from(u));
+        return new TokenResponse(jwt.issue(u, realm), "Bearer", jwt.ttlSeconds(realm), refreshTokens.issue(u.getId(), realm), UserResponse.from(u));
     }
 
     @Transactional(readOnly = true)

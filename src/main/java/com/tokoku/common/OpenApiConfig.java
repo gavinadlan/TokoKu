@@ -35,6 +35,7 @@ public class OpenApiConfig {
                 .addTagsItem(new Tag().name("Keranjang").description("Keranjang belanja customer"))
                 .addTagsItem(new Tag().name("Order").description("Checkout dan riwayat order customer"))
                 .addTagsItem(new Tag().name("Pembayaran").description("Pembayaran Midtrans dan webhook"))
+                .addTagsItem(new Tag().name("Toko").description("Info dan pengaturan toko"))
                 .addTagsItem(new Tag().name("Admin").description("Khusus role ADMIN"))
                 .addTagsItem(new Tag().name("Dev").description("Hanya dev/test dengan provider fake"));
     }
@@ -43,14 +44,16 @@ public class OpenApiConfig {
     // menganggap semua field respons opsional. Di sini semua field respons ditandai required, kecuali yang memang boleh null.
     private static final Map<String, Set<String>> NULLABLE = Map.of(
             "ProductResponse", Set.of("description", "imageUrl"),
+            "ProductImageResponse", Set.of("width", "height"),
             "CartItemResponse", Set.of("imageUrl"),
-            "PayResponse", Set.of("clientKey"));
+            "PayResponse", Set.of("clientKey"),
+            "OrderResponse", Set.of("shippingAddress", "courier", "trackingNumber", "pickupCode", "pickupReadyAt", "invoiceNumber", "invoicedAt"));
 
     @Bean
     OpenApiCustomizer responseFieldsRequired() {
         return openApi -> openApi.getComponents().getSchemas().forEach((name, schema) -> {
-            boolean response = name.endsWith("Response") || name.equals("PageMetadata") || name.equals("WebhookResult")
-                    || name.equals("SimulationResult") || name.startsWith("PagedModel");
+            boolean response = name.endsWith("Response") && !name.equals("StoreSettingsRequest") || name.equals("PageMetadata") || name.equals("WebhookResult")
+                    || name.equals("SimulationResult") || name.equals("UploadSignature") || name.startsWith("PagedModel");
             if (!response || schema.getProperties() == null) {
                 return;
             }

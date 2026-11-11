@@ -27,7 +27,7 @@ class SecuritySetupTest {
     @Test
     void adminBootstrapCreatesAdminOnlyWhenNoneExists() {
         UserRepository repo = mock(UserRepository.class);
-        var bootstrap = new AdminBootstrap(repo, new BCryptPasswordEncoder(), "Boss@Example.com", "some-password-1");
+        var bootstrap = new AdminBootstrap(repo, new BCryptPasswordEncoder(), "Boss@Example.com", "some-password-1", true);
 
         when(repo.existsByRole(Role.ADMIN)).thenReturn(false);
         bootstrap.run(null);
@@ -41,7 +41,7 @@ class SecuritySetupTest {
     @Test
     void adminBootstrapSkippedWhenEnvEmpty() {
         UserRepository repo = mock(UserRepository.class);
-        new AdminBootstrap(repo, new BCryptPasswordEncoder(), "", "").run(null);
+        new AdminBootstrap(repo, new BCryptPasswordEncoder(), "", "", true).run(null);
         verifyNoInteractions(repo);
     }
 }

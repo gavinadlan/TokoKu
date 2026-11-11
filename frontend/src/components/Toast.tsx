@@ -11,13 +11,15 @@ const ToastContext = createContext<{ notify(message: string, action?: ReactNode)
 /** Umpan balik singkat; wilayah aria-live memastikan pembaca layar ikut mengumumkannya. */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<ToastItem | null>(null);
+  const [paused, setPaused] = useState(false);
   const notify = useCallback((message: string, action?: ReactNode) => setToast({ id: Date.now(), message, action }), []);
 
+  // Toast hilang sendiri setelah 5 detik, tetapi dijeda saat disorot atau difokus (WCAG 2.2.1)
   useEffect(() => {
-    if (!toast) return;
+    if (!toast || paused) return;
     const t = setTimeout(() => setToast(null), 5000);
     return () => clearTimeout(t);
-  }, [toast]);
+  }, [toast, paused]);
 
   const value = useMemo(() => ({ notify }), [notify]);
   return (
@@ -25,9 +27,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="toast-region" role="status" aria-live="polite">
         {toast && (
-          <div className="toast" key={toast.id}>
+          <div className="toast" key={toast.id} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
             <span>{toast.message}</span>
             {toast.action}
+            <button type="button" className="toast-x" aria-label="Tutup pesan" onClick={() => setToast(null)}>
+              <span aria-hidden="true">&times;</span>
+            </button>
           </div>
         )}
       </div>

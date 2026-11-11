@@ -13,12 +13,15 @@
     "gen:api": "openapi-typescript openapi.json -o src/api/schema.d.ts",
     "fetch:api": "curl -sf ${VITE_API_URL:-http://localhost:8080}/v3/api-docs | python3 -m json.tool > openapi.json && npm run gen:api",
     "e2e": "playwright test",
+    "e2e:firstlogin": "playwright test -c playwright.firstlogin.config.ts",
     "shots": "playwright test --project=screens"
   },
   "dependencies": {
     "@fontsource-variable/fraunces": "^5.3.0",
     "@fontsource-variable/hanken-grotesk": "^5.3.0",
     "@hookform/resolvers": "^7.0.5",
+    "@radix-ui/react-dropdown-menu": "^2.2.1",
+    "@radix-ui/react-select": "^2.4.1",
     "@tanstack/react-query": "^5.107.1",
     "openapi-fetch": "^0.17.0",
     "react": "^19.3.1",

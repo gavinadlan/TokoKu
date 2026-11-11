@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { api, call } from '../api/client';
 import type { User } from '../api/types';
 import type { AuthStatus } from './guard';
-import { refreshSession, session } from './session';
+import { storeSession as session } from './session';
 
 interface AuthValue {
   status: AuthStatus;
@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     (async () => {
       if (!session.getRefresh()) return;
-      const ok = await refreshSession();
+      const ok = await session.refresh();
       if (!ok) {
         if (!cancelled) setState({ status: 'anonymous', user: null });
         return;

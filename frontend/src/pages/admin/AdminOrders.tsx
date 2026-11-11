@@ -1,36 +1,83 @@
-import { useState } from 'react';
-import { useAdminOrders, useAdminOrderStatus } from '../../api/queries';
-import { Field } from '../../components/Field';
+import { useEffect, useState } from 'react';
+import { useAdminOrders, useAdminOrderStatus, useAdminOrderSummary } from '../../api/queries';
+import type { Order } from '../../api/types';
+import { FormDialog } from '../../components/FormDialog';
+import { InvoiceButtons } from '../../components/InvoiceButtons';
 import { Pager } from '../../components/Pager';
+import { Select } from '../../components/Select';
+import { SortHeader, nextSort, type SortDir } from '../../components/SortHeader';
 import { EmptyState, ErrorState, ListSkeleton } from '../../components/States';
 import { StatusLabel } from '../../components/StatusLabel';
+import { useToast } from '../../components/Toast';
+import { agoLabel, getSeenAt, isNewSince, markSeen } from '../../lib/adminSeen';
 import { messageOf } from '../../lib/errors';
-import { formatDateTime, formatRupiah } from '../../lib/format';
-import { adminNextAction, ORDER_STATUSES, STATUS_LABEL, type OrderStatus } from '../../lib/status';
+import { formatDateTimeShort, formatRupiah } from '../../lib/format';
+import { adminNextAction, FULFILLMENT_LABEL, ORDER_STATUSES, STATUS_LABEL, type AdminAction, type Fulfillment, type OrderStatus } from '../../lib/status';
 import { useDocumentTitle } from '../../lib/useDocumentTitle';
+import { AdminPage } from './AdminShell';
+
+type OrderSort = 'id,desc' | 'id,asc' | 'createdAt,desc' | 'createdAt,asc' | 'totalAmount,desc' | 'totalAmount,asc';
 
 export function AdminOrdersPage() {
-  useDocumentTitle('Kelola order');
-  const [status, setStatus] = useState<OrderStatus | ''>('');
+  useDocumentTitle('Order | TokoKu Admin');
+  const [status, setStatus] = useState<OrderStatus | 'all'>('all');
   const [page, setPage] = useState(1);
-  const orders = useAdminOrders({ status: status || null, page });
+  const [sort, setSort] = useState<{ field: string; dir: SortDir }>({ field: 'createdAt', dir: 'desc' });
+  const orders = useAdminOrders({ status: status === 'all' ? null : status, page, sort: `${sort.field},${sort.dir}` as OrderSort });
   const change = useAdminOrderStatus();
+  const summary = useAdminOrderSummary(null);
+
+  // Sorotan "baru" = dibayar setelah kunjungan terakhir; dibekukan selama halaman ini terbuka, lalu kunjungan dicatat saat pergi
+  const [seenAt] = useState(() => getSeenAt() ?? new Date().toISOString());
+  useEffect(() => {
+    window.addEventListener('pagehide', () => markSeen());
+    return () => markSeen();
+  }, []);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(t);
+  }, []);
+  const reload = () => { orders.refetch(); summary.refetch(); };
+  const toast = useToast();
+  const [dialog, setDialog] = useState<{ order: Order; action: AdminAction } | null>(null);
+  const [courier, setCourier] = useState('');
+  const [tracking, setTracking] = useState('');
+  const [code, setCode] = useState('');
+  const [dialogError, setDialogError] = useState<string | null>(null);
+
+  const onSort = (field: string) => { setSort((s) => nextSort(s, field, field === 'createdAt' || field === 'id' ? 'desc' : 'asc')); setPage(1); };
+
+  const apply = (order: Order, action: AdminAction, extra: { courier?: string; trackingNumber?: string; pickupCode?: string } = {}) => {
+    change.mutate({ id: order.id, status: action.to, ...extra }, {
+      onSuccess: () => { toast.notify(`Order ${String(order.id).padStart(4, '0')}: ${action.label.toLowerCase()} berhasil.`); setDialog(null); },
+      onError: (e) => { if (dialog) setDialogError(messageOf(e)); },
+    });
+  };
+
+  const start = (order: Order, action: AdminAction) => {
+    if (action.input === null) return apply(order, action);
+    setCourier(''); setTracking(''); setCode(''); setDialogError(null);
+    setDialog({ order, action });
+  };
 
   return (
-    <>
-      <h1>Order</h1>
-      <div className="inline-form">
-        <Field label="Status">
-          <select className="input" value={status} onChange={(e) => { setStatus(e.target.value as OrderStatus | ''); setPage(1); }}>
-            <option value="">Semua status</option>
-            {ORDER_STATUSES.map((s) => (
-              <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-            ))}
-          </select>
-        </Field>
+    <AdminPage title="Order" sub="Kelola pengiriman dan pengambilan di toko">
+      <div className="toolrow">
+        <div className="fld">
+          <label htmlFor="o-status">Status</label>
+          <Select id="o-status" value={status} onChange={(v) => { setStatus(v as OrderStatus | 'all'); setPage(1); }} options={[{ value: 'all', label: 'Semua status' }, ...ORDER_STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))]} />
+        </div>
+        <div className="live-meta">
+          <span role="status" aria-live="polite" className="live-count">
+            {summary.data ? (summary.data.needsAction > 0 ? `${summary.data.needsAction} order perlu diproses` : 'Tidak ada order menunggu diproses') : ''}
+          </span>
+          <span className="muted small-note">Diperbarui {orders.dataUpdatedAt ? agoLabel(orders.dataUpdatedAt, now) : '-'}</span>
+          <button type="button" className="btn ghost sm" onClick={reload} disabled={orders.isFetching}>{orders.isFetching ? 'Memuat...' : 'Muat ulang'}</button>
+        </div>
       </div>
 
-      {change.error && <div className="alert err" role="alert">{messageOf(change.error)}</div>}
+      {change.error && !dialog && <div className="alert err" role="alert">{messageOf(change.error)}</div>}
 
       {orders.isPending ? (
         <ListSkeleton />
@@ -40,42 +87,50 @@ export function AdminOrdersPage() {
         <EmptyState title="Tidak ada order">Belum ada order dengan status ini.</EmptyState>
       ) : (
         <>
-          <div className="table-wrap" tabIndex={0} role="region" aria-label="Daftar order">
-            <table className="data">
+          <div className="tablebox" tabIndex={0} role="region" aria-label="Daftar order">
+            <table className="tbl" style={{ minWidth: 880 }}>
               <thead>
-                <tr><th>No.</th><th>Penerima</th><th>Dibuat</th><th className="num">Total</th><th>Status</th><th><span className="sr-only">Tindakan</span></th></tr>
+                <tr>
+                  <SortHeader label="No." field="id" sort={sort} onSort={onSort} className="sticky-col" />
+                  <SortHeader label="Dibuat" field="createdAt" sort={sort} onSort={onSort} />
+                  <th scope="col">Penerima</th>
+                  <th scope="col">Pengambilan</th>
+                  <SortHeader label="Total" field="totalAmount" sort={sort} onSort={onSort} numeric />
+                  <th scope="col">Status</th>
+                  <th scope="col"><span className="sr-only">Tindakan</span></th>
+                </tr>
               </thead>
               <tbody>
                 {orders.data.content.map((o) => {
-                  const next = adminNextAction(o.status as OrderStatus);
+                  const action = adminNextAction(o.status as OrderStatus, o.fulfillmentType as Fulfillment);
                   return (
-                    <tr key={o.id}>
-                      <td className="tnum">{String(o.id).padStart(4, '0')}</td>
+                    <tr key={o.id} className={isNewSince(o.invoicedAt, seenAt) ? 'row-new' : undefined}>
+                      <td className="id sticky-col tnum">
+                        {String(o.id).padStart(4, '0')}
+                        {isNewSince(o.invoicedAt, seenAt) && <span className="new-dot" role="img" aria-label="Baru dibayar" title="Baru dibayar" />}
+                      </td>
+                      <td className="tnum muted">{formatDateTimeShort(o.createdAt)}</td>
                       <td>
                         <details>
-                          <summary style={{ cursor: 'pointer', minHeight: 32 }}>{o.shippingName}</summary>
-                          <div className="muted" style={{ fontSize: 'var(--text-xs)', paddingBlock: 'var(--s-2)' }}>
+                          <summary>{o.shippingName}</summary>
+                          <div className="muted rowdetail">
                             <div className="tnum">{o.shippingPhone}</div>
-                            <div style={{ whiteSpace: 'pre-line' }}>{o.shippingAddress}</div>
-                            <ul style={{ margin: 'var(--s-2) 0 0', paddingLeft: 'var(--s-4)' }}>
-                              {o.items.map((i, idx) => (
-                                <li key={idx}>{i.quantity} x {i.productName}</li>
-                              ))}
-                            </ul>
+                            {o.shippingAddress && <div style={{ whiteSpace: 'pre-line' }}>{o.shippingAddress}</div>}
+                            {o.trackingNumber && <div>Resi {o.courier} <span className="tnum">{o.trackingNumber}</span></div>}
+                            <ul>{o.items.map((i, idx) => <li key={idx}>{i.quantity} x {i.productName}</li>)}</ul>
                           </div>
                         </details>
                       </td>
-                      <td className="tnum muted">{formatDateTime(o.createdAt)}</td>
-                      <td className="num">{formatRupiah(o.totalAmount)}</td>
+                      <td><span className={`chip-s ${o.fulfillmentType === 'PICKUP' ? 'pk' : ''}`}>{FULFILLMENT_LABEL[o.fulfillmentType as Fulfillment]}</span></td>
+                      <td className="n">{formatRupiah(o.totalAmount)}</td>
                       <td><StatusLabel status={o.status as OrderStatus} /></td>
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        {next ? (
-                          <button type="button" className="btn small" disabled={change.isPending} onClick={() => change.mutate({ id: o.id, status: next.to as 'PROCESSING' | 'SHIPPED' | 'COMPLETED' })}>
-                            {next.label}
-                          </button>
+                      <td className="act-cell">
+                        {action ? (
+                          <button type="button" className="btn sm" disabled={change.isPending} onClick={() => start(o, action)}>{action.label}</button>
                         ) : (
-                          <span className="muted" style={{ fontSize: 'var(--text-xs)' }}>{o.status === 'PENDING_PAYMENT' ? 'Menunggu pelanggan' : 'Tidak ada tindakan'}</span>
+                          <span className="muted small-note">{o.status === 'PENDING_PAYMENT' ? 'Menunggu pembayaran' : 'Tidak ada tindakan'}</span>
                         )}
+                        {o.invoiceNumber && <InvoiceButtons orderId={o.id} number={o.invoiceNumber} realm="admin" compact />}
                       </td>
                     </tr>
                   );
@@ -86,6 +141,29 @@ export function AdminOrdersPage() {
           <Pager page={page} totalPages={orders.data.page.totalPages} onChange={setPage} />
         </>
       )}
-    </>
+
+      <FormDialog
+        open={dialog !== null}
+        title={dialog ? (dialog.action.input === 'tracking' ? `Tandai dikirim: order ${String(dialog.order.id).padStart(4, '0')}` : `Selesaikan pengambilan: order ${String(dialog.order.id).padStart(4, '0')}`) : ''}
+        submitLabel={dialog?.action.input === 'tracking' ? 'Simpan dan tandai dikirim' : 'Verifikasi dan selesaikan'}
+        busy={change.isPending}
+        error={dialogError}
+        onClose={() => setDialog(null)}
+        onSubmit={() => dialog && apply(dialog.order, dialog.action, dialog.action.input === 'tracking' ? { courier: courier.trim(), trackingNumber: tracking.trim() } : { pickupCode: code })}
+      >
+        {dialog?.action.input === 'tracking' ? (
+          <>
+            <div className="field"><label htmlFor="d-courier">Kurir</label><input id="d-courier" className="input" value={courier} onChange={(e) => setCourier(e.target.value)} required maxLength={50} placeholder="mis. JNE" /></div>
+            <div className="field"><label htmlFor="d-resi">Nomor resi</label><input id="d-resi" className="input tnum" value={tracking} onChange={(e) => setTracking(e.target.value)} required maxLength={60} /></div>
+          </>
+        ) : (
+          <div className="field">
+            <label htmlFor="d-code">Kode ambil dari pembeli</label>
+            <input id="d-code" className="input code-input" value={code} onChange={(e) => setCode(e.target.value)} required maxLength={20} autoComplete="off" autoCapitalize="characters" spellCheck={false} />
+            <span className="hint">Huruf besar atau kecil sama saja. Pembeli bisa melihat kodenya di halaman order.</span>
+          </div>
+        )}
+      </FormDialog>
+    </AdminPage>
   );
 }

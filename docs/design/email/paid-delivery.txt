@@ -1,0 +1,31 @@
+TokoKu
+
+PEMBAYARAN DITERIMA
+Terima kasih, pembayaran untuk pesanan No. 0128 sudah kami terima. Kami akan segera menyiapkannya.
+Status: Lunas
+
+Pesanan     : No. 0128
+Tanggal     : 10 November 2026, 14.07 WIB
+Pembeli     : Siti Rahmawati
+Pengambilan : Pengiriman
+No. invoice : INV-202611-00042
+
+Dikirim ke: Siti Rahmawati, Jl. Kopi No. 12, Menteng
+Jakarta Pusat 10310
+
+Barang:
+- Kopi Arabika Gayo 250g: 2 x Rp85.000 = Rp170.000
+- Dripper keramik V60 02: 1 x Rp125.500 = Rp125.500
+- Filter kertas V60 isi 100: 3 x Rp12.500 = Rp37.500
+
+Subtotal: Rp333.000
+Biaya kirim: Rp15.000
+TOTAL: Rp348.000
+
+Invoice INV-202611-00042 terlampir sebagai PDF.
+
+Lihat pesanan: http://localhost:5173/order/128
+
+TokoKu
+Jl. Contoh No. 1, Kota Anda
+0800-0000-0000 · halo@tokoku.example

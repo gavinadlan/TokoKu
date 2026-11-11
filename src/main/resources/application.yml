@@ -1,4 +1,8 @@
 spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB     # hanya dipakai unggahan dev (provider fake)
+      max-request-size: 11MB
   application:
     name: tokoku
   datasource:
@@ -11,7 +15,22 @@ spring:
       ddl-auto: validate          # skema hanya dikelola Flyway
   flyway:
     enabled: true
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: true
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
 management:
+  health:
+    mail:
+      enabled: false          # jangan membuka koneksi SMTP tiap health check
   endpoints:
     web:
       exposure:
@@ -24,14 +43,40 @@ app:
   admin:
     email: ${ADMIN_EMAIL:}
     password: ${ADMIN_PASSWORD:}
+    force-password-change: ${APP_ADMIN_FORCE_PASSWORD_CHANGE:true}   # false hanya untuk dev lokal/e2e
+  mail:
+    enabled: ${APP_MAIL_ENABLED:true}
+    provider: ${APP_MAIL_PROVIDER:smtp}                # smtp | brevo | noop
+    brevo:
+      api-key: ${BREVO_API_KEY:}                        # rahasia
+    from: ${MAIL_FROM:TokoKu <noreply@tokoku.local>}   # smtp/Gmail: sama dengan MAIL_USERNAME; brevo: pengirim yang sudah terverifikasi di Brevo
+  frontend:
+    base-url: ${APP_FRONTEND_BASE_URL:http://localhost:5173}   # tujuan redirect setelah bayar; wajib URL publik di prod
   payment:
     provider: ${APP_PAYMENT_PROVIDER:midtrans}   # midtrans | fake (fake dilarang di prod)
     midtrans:
       server-key: ${MIDTRANS_SERVER_KEY:}
       client-key: ${MIDTRANS_CLIENT_KEY:}
       snap-url: ${MIDTRANS_API_URL:https://app.sandbox.midtrans.com/snap/v1/transactions}
+      api-url: ${MIDTRANS_CORE_API_URL:https://api.sandbox.midtrans.com/v2}   # Status API: {api-url}/{order_id}/status
+    reconcile:
+      interval-ms: ${APP_PAYMENT_RECONCILE_MS:300000}   # jaring pengaman tanpa webhook: tiap 5 menit
+      initial-delay-ms: 60000
+      batch-size: 20                                    # maks panggilan Status API per putaran
+    refresh-per-minute: 20                              # batas POST /api/orders/{id}/payment/refresh per pengguna
   order:
     expiry-minutes: ${APP_ORDER_EXPIRY_MINUTES:60}
     expiry-check-ms: 300000        # scheduler tiap 5 menit
+  images:
+    provider: ${APP_IMAGES_PROVIDER:cloudinary}      # cloudinary | fake (fake dilarang di prod)
+    public-base-url: ${APP_IMAGES_PUBLIC_BASE_URL:http://localhost:8080}   # hanya untuk provider fake
+    cloudinary:
+      cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+      api-key: ${CLOUDINARY_API_KEY:}
+      api-secret: ${CLOUDINARY_API_SECRET:}
+  seed:
+    demo: ${APP_SEED_DEMO:false}                        # produk contoh + toko demo; aman untuk prod
+    demo-user-email: ${DEMO_USER_EMAIL:demo@tokoku.example}
+    demo-user-password: ${DEMO_USER_PASSWORD:}          # rahasia; kosong = tanpa akun demo
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}

@@ -35,8 +35,32 @@ public class Order {
     @Column(name = "shipping_phone", nullable = false)
     private String shippingPhone;
 
-    @Column(name = "shipping_address", nullable = false)
+    @Column(name = "shipping_address")
     private String shippingAddress;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "fulfillment_type", nullable = false, updatable = false)
+    private FulfillmentType fulfillmentType = FulfillmentType.DELIVERY;
+
+    @Column(name = "shipping_fee", nullable = false)
+    private BigDecimal shippingFee = BigDecimal.ZERO;
+
+    private String courier;
+
+    @Column(name = "tracking_number")
+    private String trackingNumber;
+
+    @Column(name = "pickup_code")
+    private String pickupCode;
+
+    @Column(name = "pickup_ready_at")
+    private Instant pickupReadyAt;
+
+    @Column(name = "invoice_number")
+    private String invoiceNumber;
+
+    @Column(name = "invoiced_at")
+    private Instant invoicedAt;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
@@ -47,8 +71,9 @@ public class Order {
 
     protected Order() {}
 
-    public Order(Long userId, String shippingName, String shippingPhone, String shippingAddress) {
+    public Order(Long userId, FulfillmentType fulfillmentType, String shippingName, String shippingPhone, String shippingAddress) {
         this.userId = userId;
+        this.fulfillmentType = fulfillmentType;
         this.shippingName = shippingName;
         this.shippingPhone = shippingPhone;
         this.shippingAddress = shippingAddress;
@@ -59,9 +84,42 @@ public class Order {
         totalAmount = totalAmount.add(unitPrice.multiply(BigDecimal.valueOf(quantity)));
     }
 
+    /** Ongkir dihitung server setelah semua item masuk; total = subtotal + ongkir. */
+    public void applyShippingFee(BigDecimal fee) {
+        shippingFee = fee;
+        totalAmount = totalAmount.add(fee);
+    }
+
+    public BigDecimal getSubtotal() { return totalAmount.subtract(shippingFee); }
+
+    public void markShipped(String courier, String trackingNumber) {
+        transitionTo(OrderStatus.SHIPPED);
+        this.courier = courier;
+        this.trackingNumber = trackingNumber;
+    }
+
+    public void markReadyForPickup() {
+        transitionTo(OrderStatus.READY_FOR_PICKUP);
+        this.pickupReadyAt = Instant.now();
+    }
+
+    public void assignPickupCode(String code) { this.pickupCode = code; }
+
+    /** Idempoten: nomor invoice hanya diberikan sekali. */
+    public void assignInvoice(String number, Instant at) {
+        if (invoiceNumber == null) {
+            invoiceNumber = number;
+            invoicedAt = at;
+        }
+    }
+
+    public boolean pickupCodeMatches(String input) {
+        return pickupCode != null && pickupCode.equals(PickupCodes.normalize(input));
+    }
+
     // Satu-satunya pintu mengubah status; transisi tidak sah ditolak (409)
     public void transitionTo(OrderStatus next) {
-        if (!status.canTransitionTo(next)) {
+        if (!status.canTransitionTo(next, fulfillmentType)) {
             throw new ConflictException("Cannot change order status from " + status + " to " + next);
         }
         status = next;
@@ -78,6 +136,14 @@ public class Order {
     public String getShippingName() { return shippingName; }
     public String getShippingPhone() { return shippingPhone; }
     public String getShippingAddress() { return shippingAddress; }
+    public FulfillmentType getFulfillmentType() { return fulfillmentType; }
+    public BigDecimal getShippingFee() { return shippingFee; }
+    public String getCourier() { return courier; }
+    public String getTrackingNumber() { return trackingNumber; }
+    public String getPickupCode() { return pickupCode; }
+    public Instant getPickupReadyAt() { return pickupReadyAt; }
+    public String getInvoiceNumber() { return invoiceNumber; }
+    public Instant getInvoicedAt() { return invoicedAt; }
     public Instant getCreatedAt() { return createdAt; }
     public List<OrderItem> getItems() { return items; }
 }

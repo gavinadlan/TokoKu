@@ -1,0 +1,69 @@
+# Render Blueprint: backend (Docker, free) + frontend (static site). Database: Neon (di luar Render).
+# Field dicocokkan dengan JSON schema resmi https://render.com/schema/render.yaml.json (lolos validasi; `plan`/`region`/`healthCheckPath`
+# tidak boleh di static site, `routes` = type redirect|rewrite + source + destination).
+# Waktu start terukur (container 512 MB, 0.1 CPU = jatah free): `Started` 299 detik, /actuator/health UP 343 detik. Render membatalkan deploy
+# yang belum sehat dalam 15 menit (900 detik) dan tiap health check harus menjawab dalam 5 detik; keduanya TIDAK bisa diatur di Blueprint
+# (schema tidak punya field timeout). Bila deploy tetap tidak Live: README, "Bila backend tidak pernah Live di Render gratis".
+# Nilai `sync: false` ditanya sekali saat Blueprint dibuat; isi lewat dashboard. Daftar lengkap: README, bagian "Environment variable".
+services:
+  - type: web
+    name: tokoku-api
+    runtime: docker
+    plan: free                              # ganti ke `starter` (0.5 CPU, 512 MB) bila tidak pernah Live; lihat README
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /actuator/health
+    autoDeployTrigger: off
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: JWT_SECRET
+        generateValue: true                 # rahasia, dibuat Render (256-bit)
+      - key: DATABASE_URL                   # jdbc:postgresql://<host-neon>/<db>?sslmode=require
+        sync: false
+      - key: DATABASE_USER
+        sync: false
+      - key: DATABASE_PASSWORD              # rahasia
+        sync: false
+      - key: APP_FRONTEND_BASE_URL          # URL static site, tanpa slash akhir
+        sync: false
+      - key: APP_CORS_ALLOWED_ORIGINS       # sama dengan URL static site
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD                 # rahasia, sementara: wajib diganti saat login pertama
+        sync: false
+      - key: APP_MAIL_PROVIDER              # Render free memblokir SMTP: pakai brevo (HTTPS)
+        value: brevo
+      - key: BREVO_API_KEY                  # rahasia
+        sync: false
+      - key: MAIL_FROM                      # pengirim terverifikasi di Brevo: Nama <alamat@domain>
+        sync: false
+      - key: MIDTRANS_SERVER_KEY            # rahasia
+        sync: false
+      - key: MIDTRANS_CLIENT_KEY
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET          # rahasia
+        sync: false
+      - key: APP_SEED_DEMO                  # opsional: produk contoh + toko demo bila katalog kosong
+        value: "false"
+      - key: DEMO_USER_PASSWORD             # opsional, rahasia: tanpa nilai = tanpa akun pembeli demo
+        sync: false
+
+  - type: web
+    name: tokoku-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_URL                   # URL tokoku-api, tanpa slash akhir; ditanam saat build
+        sync: false
+    routes:
+      - type: rewrite                       # SPA: semua jalur ke index.html
+        source: /*
+        destination: /index.html

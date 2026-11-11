@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router';
-import { useCancelOrder, useOrder, useOrders } from '../api/queries';
+import { useCancelOrder, useOrder, useOrders, useStore } from '../api/queries';
 import { usePayAndRedirect } from '../api/usePayment';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Pager } from '../components/Pager';
+import { InvoiceButtons } from '../components/InvoiceButtons';
+import { OrderTimeline } from '../components/OrderTimeline';
 import { Receipt } from '../components/Receipt';
 import { EmptyState, ErrorState, ListSkeleton } from '../components/States';
 import { StatusLabel } from '../components/StatusLabel';
 import { messageOf } from '../lib/errors';
 import { formatDate, formatDateTime, formatRupiah } from '../lib/format';
-import { canCancel, canPay, type OrderStatus } from '../lib/status';
+import { canCancel, canPay, FULFILLMENT_LABEL, type Fulfillment, type OrderStatus } from '../lib/status';
 import { useDocumentTitle } from '../lib/useDocumentTitle';
 import { NotFoundView } from './NotFound';
 import { ApiError } from '../lib/errors';
@@ -41,7 +43,7 @@ export function OrdersPage() {
                   <div>
                     <div className="oid">Order No. {String(o.id).padStart(4, '0')}</div>
                     <div className="muted tnum" style={{ fontSize: 'var(--text-sm)' }}>
-                      {formatDate(o.createdAt)} &middot; {o.items.reduce((n, i) => n + i.quantity, 0)} barang
+                      {formatDate(o.createdAt)} &middot; {o.items.reduce((n, i) => n + i.quantity, 0)} barang &middot; {FULFILLMENT_LABEL[o.fulfillmentType as Fulfillment]}
                     </div>
                   </div>
                   <div className="right">
@@ -61,7 +63,8 @@ export function OrdersPage() {
 
 export function OrderDetailPage() {
   const id = Number(useParams().id);
-  const order = useOrder(id);
+  const order = useOrder(id, { watch: true }); // status "siap diambil" muncul tanpa refresh
+  const store = useStore();
   const payment = usePayAndRedirect();
   const cancel = useCancelOrder();
   const [confirming, setConfirming] = useState(false);
@@ -82,7 +85,7 @@ export function OrderDetailPage() {
       <nav className="crumbs" aria-label="Jejak halaman" style={{ paddingTop: 0 }}>
         <Link to="/order">Riwayat order</Link> / <span aria-current="page">No. {String(o.id).padStart(4, '0')}</span>
       </nav>
-      <div className="row-between" style={{ alignItems: 'end', flexWrap: 'wrap', marginBottom: 'var(--s-6)' }}>
+      <div className="detail-head">
         <h1 className="page-title">Order No. {String(o.id).padStart(4, '0')}</h1>
         <StatusLabel status={status} />
       </div>
@@ -94,13 +97,21 @@ export function OrderDetailPage() {
       )}
       <div className="layout-2">
         <div className="stack">
-          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 440, fontSize: 'var(--text-xl)' }}>Pengiriman</h2>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 440, fontSize: 'var(--text-xl)', marginBottom: 'var(--s-3)' }}>Status pesanan</h2>
+          <OrderTimeline order={o} store={store.data} />
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 440, fontSize: 'var(--text-xl)', marginTop: 'var(--s-6)' }}>
+            {o.fulfillmentType === 'PICKUP' ? 'Pengambil' : 'Pengiriman'}
+          </h2>
           <p>
             {o.shippingName}
             <br />
             <span className="muted tnum">{o.shippingPhone}</span>
-            <br />
-            <span className="muted" style={{ whiteSpace: 'pre-line' }}>{o.shippingAddress}</span>
+            {o.shippingAddress && (
+              <>
+                <br />
+                <span className="muted" style={{ whiteSpace: 'pre-line' }}>{o.shippingAddress}</span>
+              </>
+            )}
           </p>
           <p className="muted tnum" style={{ fontSize: 'var(--text-sm)' }}>Dibuat {formatDateTime(o.createdAt)}</p>
           {status === 'PENDING_PAYMENT' && (
@@ -113,9 +124,16 @@ export function OrderDetailPage() {
           <Receipt
             title="Rincian"
             items={o.items.map((i) => ({ name: i.productName, qty: i.quantity, subtotal: i.subtotal }))}
+            rows={[
+              { label: 'Subtotal', value: formatRupiah(o.subtotal) },
+              o.fulfillmentType === 'PICKUP'
+                ? { label: 'Ambil di toko', value: <span className="free">Gratis</span> }
+                : { label: 'Biaya kirim', value: o.shippingFee === 0 ? <span className="free">Gratis</span> : formatRupiah(o.shippingFee) },
+            ]}
             total={o.totalAmount}
             actions={
               <>
+                {o.invoiceNumber && <InvoiceButtons orderId={o.id} number={o.invoiceNumber} realm="store" />}
                 {canPay(status) && (
                   <button className="btn block" type="button" disabled={payment.pending} onClick={() => payment.start(o.id).catch(() => undefined)}>
                     {payment.pending ? 'Mengalihkan...' : 'Bayar sekarang'}

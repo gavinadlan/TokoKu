@@ -38,7 +38,7 @@ class OrderApiIntegrationTest extends ApiTestBase {
 
         // harga produk berubah sesudah checkout: order lama tetap memakai harga salinan
         p = products.findById(p.getId()).orElseThrow();
-        p.update(p.getCategory(), p.getName(), "x", new java.math.BigDecimal("99999"), null);
+        p.update(p.getCategory(), p.getName(), "x", new java.math.BigDecimal("99999"));
         products.save(p);
         send(get("/api/orders/" + orderId), token, null).andExpect(jsonPath("$.items[0].unitPrice").value(20000.0));
     }

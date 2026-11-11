@@ -110,10 +110,10 @@ class PaymentApiIntegrationTest extends ApiTestBase {
         String ref = payRef(f);
         Notification good = gateway.signedNotification(ref, "200", gross(f, 1), "settlement");
         Notification forged = new Notification(good.orderId(), good.statusCode(), good.grossAmount(),
-                "0".repeat(128), good.transactionStatus(), null, "tx");
+                "0".repeat(128), good.transactionStatus(), null, "tx", null);
 
         webhook(forged).andExpect(status().isForbidden());
-        webhook(new Notification(ref, "200", gross(f, 1), null, "settlement", null, "tx")).andExpect(status().isForbidden());
+        webhook(new Notification(ref, "200", gross(f, 1), null, "settlement", null, "tx", null)).andExpect(status().isForbidden());
 
         assertThat(orderStatus(f)).isEqualTo("PENDING_PAYMENT");
         assertThat(payments.findByProviderRef(ref).orElseThrow().getStatus()).isEqualTo(PaymentStatus.PENDING);
@@ -191,7 +191,7 @@ class PaymentApiIntegrationTest extends ApiTestBase {
 
         String admin = adminToken();
         send(patch("/api/admin/orders/" + f.orderId() + "/status"), admin, "{\"status\":\"PROCESSING\"}").andExpect(status().isOk());
-        send(patch("/api/admin/orders/" + f.orderId() + "/status"), admin, "{\"status\":\"SHIPPED\"}").andExpect(status().isOk());
+        send(patch("/api/admin/orders/" + f.orderId() + "/status"), admin, "{\"status\":\"SHIPPED\",\"courier\":\"JNE\",\"trackingNumber\":\"CGK123\"}").andExpect(status().isOk());
         send(patch("/api/admin/orders/" + f.orderId() + "/status"), admin, "{\"status\":\"COMPLETED\"}")
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("COMPLETED"));
         assertThat(orders.findById(f.orderId()).orElseThrow().getStatus()).isEqualTo(OrderStatus.COMPLETED);

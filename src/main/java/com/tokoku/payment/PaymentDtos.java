@@ -17,7 +17,7 @@ public final class PaymentDtos {
     /** Webhook Midtrans memuat banyak field; kita ambil yang dipakai saja dari JSON bebas. */
     static PaymentGateway.Notification toNotification(Map<String, Object> body) {
         return new PaymentGateway.Notification(str(body, "order_id"), str(body, "status_code"), str(body, "gross_amount"),
-                str(body, "signature_key"), str(body, "transaction_status"), str(body, "fraud_status"), str(body, "transaction_id"));
+                str(body, "signature_key"), str(body, "transaction_status"), str(body, "fraud_status"), str(body, "transaction_id"), str(body, "payment_type"));
     }
 
     private static String str(Map<String, Object> m, String k) {

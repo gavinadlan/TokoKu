@@ -20,6 +20,7 @@ class ProductServiceTest {
 
     @Mock ProductRepository products;
     @Mock CategoryRepository categories;
+    @Mock ProductImageUrls urls;
     @InjectMocks ProductService service;
 
     private final Category category = new Category("Gadget");
@@ -29,7 +30,7 @@ class ProductServiceTest {
         when(categories.findById(1L)).thenReturn(Optional.of(category));
         when(products.save(org.mockito.ArgumentMatchers.any(Product.class))).thenAnswer(i -> i.getArgument(0));
 
-        ProductResponse r = service.create(new ProductRequest(1L, "Mouse", null, new BigDecimal("50000"), 5, null));
+        ProductResponse r = service.create(new ProductRequest(1L, "Mouse", null, new BigDecimal("50000"), 5));
 
         assertThat(r.name()).isEqualTo("Mouse");
         assertThat(r.stock()).isEqualTo(5);
@@ -39,7 +40,7 @@ class ProductServiceTest {
     void createFailsWhenCategoryMissing() {
         when(categories.findById(9L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.create(new ProductRequest(9L, "Mouse", null, BigDecimal.ONE, 1, null)))
+        assertThatThrownBy(() -> service.create(new ProductRequest(9L, "Mouse", null, BigDecimal.ONE, 1)))
                 .isInstanceOf(NotFoundException.class);
     }
 

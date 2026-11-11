@@ -6,7 +6,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -19,10 +21,14 @@ import com.tokoku.cart.CartItemRepository;
 import com.tokoku.cart.CartRepository;
 import com.tokoku.common.ConflictException;
 import com.tokoku.common.NotFoundException;
+import com.tokoku.notification.EmailKind;
+import com.tokoku.notification.OrderNotification;
 import com.tokoku.order.OrderDtos.*;
 import com.tokoku.product.Product;
 import com.tokoku.payment.PaymentRepository;
 import com.tokoku.product.ProductRepository;
+import com.tokoku.store.StoreService;
+import com.tokoku.store.StoreSettings;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
@@ -38,19 +44,31 @@ public class OrderService {
     private final CartItemRepository cartItems;
     private final ProductRepository products;
     private final PaymentRepository payments;
+    private final ShippingCalculator shipping;
+    private final StoreService store;
     private final Duration expiry;
 
     @PersistenceContext
     private EntityManager em;
 
+    @Autowired
+    private ApplicationEventPublisher events;
+
+    /** Email dikirim listener SETELAH commit transaksi pemanggil; jika transaksi rollback, tidak ada email. */
+    public void notifyCustomer(Order o, EmailKind kind) {
+        events.publishEvent(new OrderNotification(o.getId(), kind));
+    }
+
     public OrderService(OrderRepository orders, CartRepository carts, CartItemRepository cartItems,
             ProductRepository products, PaymentRepository payments,
-            @Value("${app.order.expiry-minutes:60}") long expiryMinutes) {
+            ShippingCalculator shipping, StoreService store, @Value("${app.order.expiry-minutes:60}") long expiryMinutes) {
         this.orders = orders;
         this.carts = carts;
         this.cartItems = cartItems;
         this.products = products;
         this.payments = payments;
+        this.shipping = shipping;
+        this.store = store;
         this.expiry = Duration.ofMinutes(expiryMinutes);
     }
 
@@ -73,7 +91,17 @@ public class OrderService {
         // Urutan tetap (id naik) supaya dua checkout bersamaan mengunci baris dengan urutan sama = tanpa deadlock
         lines.sort(Comparator.comparing(Line::productId));
 
-        Order order = new Order(userId, r.shippingName().trim(), r.shippingPhone().trim(), r.shippingAddress().trim());
+        FulfillmentType type = r.fulfillmentType() == null ? FulfillmentType.DELIVERY : r.fulfillmentType();
+        String address = r.shippingAddress() == null ? "" : r.shippingAddress().trim();
+        StoreSettings settings = store.current();
+        if (type == FulfillmentType.DELIVERY) {
+            if (!settings.isDeliveryEnabled()) throw new ConflictException("Delivery is not available");
+            if (address.length() < 10) throw new IllegalArgumentException("Shipping address is required for delivery");
+        } else if (!settings.isPickupEnabled() || !settings.isConfigured()) {
+            throw new ConflictException("Pickup is not available");
+        }
+        Order order = new Order(userId, type, r.shippingName().trim(), r.shippingPhone().trim(),
+                type == FulfillmentType.DELIVERY ? address : null);
         for (Line line : lines) {
             // UPDATE ... WHERE stock >= qty bersifat atomik di DB; 0 baris berubah = stok tidak cukup
             if (products.decrementStock(line.productId(), line.quantity()) == 0) {
@@ -82,8 +110,11 @@ public class OrderService {
             Product p = products.findById(line.productId()).orElseThrow(); // harga terbaru, sesudah baris terkunci
             order.addItem(p.getId(), p.getName(), line.quantity(), p.getPrice());
         }
+        // Ongkir selalu dihitung server dari subtotal; angka dari klien tidak dipercaya
+        order.applyShippingFee(shipping.fee(type, order.getTotalAmount()));
         orders.save(order);
         cartItems.deleteAllByCartId(cart.getId());
+        notifyCustomer(order, EmailKind.ORDER_CREATED);
         return OrderResponse.from(order);
     }
 
@@ -154,20 +185,58 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
+    public OrderSummaryResponse summary(Instant since) {
+        long paidSince = since == null ? 0 : orders.countPaidSince(since);
+        return new OrderSummaryResponse(orders.countByStatus(OrderStatus.PAID), paidSince, Instant.now());
+    }
+
+    @Transactional(readOnly = true)
     public OrderResponse getAny(Long orderId) {
         return OrderResponse.from(orders.findById(orderId).orElseThrow(() -> new NotFoundException("Order " + orderId + " not found")));
     }
 
-    /** Admin hanya boleh memajukan pemenuhan order. PAID hanya lewat webhook; CANCELLED lewat pembatalan/kedaluwarsa. */
+    /**
+     * Admin memajukan pemenuhan order sesuai jalurnya. PAID hanya lewat pembayaran, CANCELLED lewat pembatalan/kedaluwarsa.
+     * SHIPPED mewajibkan kurir dan resi; menyelesaikan order PICKUP mewajibkan kode ambil yang cocok.
+     */
     @Transactional
-    public OrderResponse adminChangeStatus(Long orderId, OrderStatus next) {
-        if (next != OrderStatus.PROCESSING && next != OrderStatus.SHIPPED && next != OrderStatus.COMPLETED) {
-            throw new ConflictException("Admin can only set PROCESSING, SHIPPED or COMPLETED");
+    public OrderResponse adminChangeStatus(Long orderId, StatusRequest r) {
+        OrderStatus next = r.status();
+        if (next != OrderStatus.PROCESSING && next != OrderStatus.SHIPPED && next != OrderStatus.READY_FOR_PICKUP
+                && next != OrderStatus.COMPLETED) {
+            throw new ConflictException("Admin can only set PROCESSING, SHIPPED, READY_FOR_PICKUP or COMPLETED");
         }
         Order o = orders.findById(orderId).orElseThrow(() -> new NotFoundException("Order " + orderId + " not found"));
-        o.transitionTo(next);
+        switch (next) {
+            case SHIPPED -> {
+                requireTransition(o, next);
+                if (isBlank(r.courier()) || isBlank(r.trackingNumber())) {
+                    throw new IllegalArgumentException("Courier and tracking number are required to mark as shipped");
+                }
+                o.markShipped(r.courier().trim(), r.trackingNumber().trim());
+            }
+            case READY_FOR_PICKUP -> o.markReadyForPickup();
+            case COMPLETED -> {
+                requireTransition(o, next);
+                if (o.getFulfillmentType() == FulfillmentType.PICKUP && !o.pickupCodeMatches(r.pickupCode())) {
+                    throw new IllegalArgumentException("Pickup code does not match");
+                }
+                o.transitionTo(next);
+            }
+            default -> o.transitionTo(next);
+        }
+        notifyCustomer(o, EmailKind.valueOf(next.name()));
         return OrderResponse.from(o);
     }
+
+    // Cek jalur dulu supaya pesan 409 (jalur salah) menang atas 400 (isian kurang)
+    private static void requireTransition(Order o, OrderStatus next) {
+        if (!o.getStatus().canTransitionTo(next, o.getFulfillmentType())) {
+            throw new ConflictException("Cannot change order status from " + o.getStatus() + " to " + next);
+        }
+    }
+
+    private static boolean isBlank(String s) { return s == null || s.isBlank(); }
 
     /**
      * Membatalkan order yang belum dibayar dan mengembalikan stok. Dipanggil dari webhook, pembatalan, dan kedaluwarsa.
@@ -176,6 +245,7 @@ public class OrderService {
      */
     public void cancelAndRestock(Order order) {
         order.transitionTo(OrderStatus.CANCELLED);
+        notifyCustomer(order, EmailKind.CANCELLED);
         payments.closePending(order.getId());
         order.getItems().stream()
                 .sorted(Comparator.comparing(OrderItem::getProductId)) // urutan tetap = tanpa deadlock

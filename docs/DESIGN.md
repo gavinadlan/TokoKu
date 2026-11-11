@@ -111,3 +111,129 @@ Aturan: judul sentence case (tanpa huruf kapital semua); tanpa tracking lebar; a
 2. **Foto produk:** sekarang tidak ada; placeholder label kemasan dipakai, dan `imageUrl` dari admin menggantikannya otomatis.
 3. **Mode gelap** tidak dikerjakan di tahap ini.
 4. **Nama lain "No."**: nomor produk memakai id database; jika Anda ingin kode SKU sendiri, backend perlu kolom baru (di luar lingkup).
+
+---
+
+# Putaran 2 (addendum, draf untuk disetujui)
+
+Mock statis di `docs/design/round2/*.html`, screenshot 375 dan 1280 di `docs/design/round2/*.png` (invoice memakai lebar A4 794px; di 375 diperkecil proporsional). Data produk dan harga dari data seed; nama pembeli, nomor order, dan identitas toko adalah **data contoh** (diberi catatan di tiap mock). Foto produk belum ada, jadi mock memakai placeholder label kemasan.
+
+## R2-1. Shell admin terpisah dari toko
+
+Tujuan: terasa seperti alat kerja yang tenang dan padat, tetapi jelas "dapur", bukan etalase.
+- **Pembeda dari toko (keputusan konkret):** rel samping gelap (`#1B1613`) dengan teks paper, bukan header terang; isi di latar `--surface` (lebih terang dari paper toko); judul halaman serif ringan 28px (bukan 60px); isi 14px; tabel padat (baris 48px); tanpa kartu produk, tanpa placeholder besar. Wordmark "TokoKu *Admin*" dengan kata Admin miring redup.
+- **Bahasa yang sama:** token warna, Fraunces untuk judul, Hanken Grotesk untuk isi, aksen hijau yang sama untuk tombol utama, radius 4/6/8, hairline.
+- **Login admin** (`/admin/masuk`): dua panel. Kiri gelap (wordmark, satu kalimat "Khusus pengelola toko", bingkai label kosong sebagai motif), kanan form sempit. Salinan tegas: akun pembeli tidak bisa masuk di sini. Halaman login toko tidak menyebut admin sama sekali.
+- **Navigasi:** desktop rel kiri (Produk, Order, Pengaturan toko; email admin dan Keluar di bawah); ponsel jadi baris tab horizontal di bawah wordmark. Tidak ada tautan ke toko di header toko menuju admin, dan sebaliknya hanya lewat alamat.
+- **Tabel:** header menempel, kolom bisa diurutkan (`aria-sort`), kolom nomor menempel di ponsel, aksi baris dalam menu "Aksi" (bukan deretan tautan), status sebagai titik + teks, chip kecil "Kirim"/"Ambil" di order, panel tindakan di bawah tabel untuk mengisi resi dan memverifikasi kode ambil.
+
+## R2-2. Pilihan pengambilan di checkout
+
+Kontrol segmen dua kartu bergaris (radio sungguhan, bisa dipilih keyboard) di atas formulir: **Kirim ke alamat** (biaya kirim dan ambang gratis ongkir dari pengaturan toko) dan **Ambil di toko** (Gratis). Terpilih ditandai garis 2px ink + radio terisi, tidak hanya warna. Saat "Ambil di toko": formulir hanya nama pengambil dan telepon, plus kotak info toko bergaya label (alamat, jam buka, telepon, petunjuk). Ringkasan struk memisahkan **Subtotal**, **Biaya kirim** (atau "Ambil di toko: Gratis"), lalu **Total**; satu kalimat bantuan ("Tambah Rp 123.000 lagi untuk gratis ongkir") hanya bila ambang dikonfigurasi. Angka yang dikirim ke Midtrans selalu dari server.
+
+## R2-3. Linimasa status order (dua jalur)
+
+Linimasa vertikal dengan rel tipis: langkah selesai berdot ink, langkah sekarang berdot hijau dengan lingkar lembut, langkah berikutnya redup. Waktu tabular di kanan. **Kirim:** Pesanan dibuat, Dibayar, Diproses, Dikirim (blok label: kurir, nomor resi, tombol "Salin nomor resi"), Selesai. **Ambil:** Pesanan dibuat, Dibayar, Diproses, **Siap diambil** (blok label berisi **kode ambil** besar bergaya serif berjarak, plus lokasi dan jam buka), Selesai. Order dibatalkan tidak punya linimasa lanjutan, hanya pesan blok merah dengan alasan. Kode ambil hanya muncul untuk pemilik setelah order dibayar.
+
+## R2-4. Invoice A4
+
+Kertas paper dengan bingkai hairline 18px dari tepi (gema label kemasan, satu-satunya motif). Kiri atas identitas toko (wordmark serif, alamat, telepon, email); kanan atas "Invoice" serif ringan 44px, nomor `INV-YYYYMM-NNNNN` tabular, dan tanda **Lunas**: kotak berbingkai ganda hairline hijau dengan "Lunas" miring serif dan "dibayar 10 November 2026" kecil, tanpa rotasi, tanpa merah, tanpa cap. Garis ink tegas memisahkan kepala. Baris meta empat kolom (nomor order, tanggal terbit, tanggal bayar, metode pembayaran), dua blok pihak ("Ditagihkan kepada" dan "Dikirim ke" dengan kurir dan resi, atau "Pengambilan di toko" dengan lokasi, jam buka, dan kode ambil), tabel item (No., Deskripsi + kategori kecil, Jml, Harga satuan, Jumlah), ringkasan Subtotal / Biaya kirim (atau Ambil di toko: Gratis) / **Total** besar, baris status dan metode pembayaran, lalu catatan kaki yang diatur lewat konfigurasi. **Pajak dan NPWP/NIB hanya tampil bila dikonfigurasi**; tidak ada aturan pajak karangan. Dua varian: `invoice-delivery` dan `invoice-pickup`.
+- **Catatan teknis yang memengaruhi desain:** PDF dirender backend (openhtmltopdf) yang tidak membaca font variabel/WOFF2. Font toko (Fraunces, Hanken Grotesk, lisensi OFL) akan dibuat sebagai **instans statis TTF** lewat fontTools dan disertakan di jar; fitur OpenType lanjutan tidak tersedia, tetapi angka Hanken sudah selebar tabular. Lebih dari satu halaman menambah halaman A4 dengan kepala tabel berulang.
+
+## R2-5. Pengelola foto dan galeri
+
+- **Admin:** panel "Foto produk (3 dari 6)" dengan petunjuk format dan batas (jpg, png, webp, 5 MB). Grid kotak 4:5; tiap kotak: tag "Utama" pada foto utama, tombol teks **Kiri / Kanan** (urutan lewat tombol agar aksesibel keyboard, tanpa seret-lepas wajib), **Jadikan utama**, **Hapus** (konfirmasi dialog). State: mengunggah (bar progres 3px + persen, `role=progressbar`, bisa dibatalkan), gagal (kotak merah dengan alasan dan "Pilih file lain"), kosong ("Tambah foto"), batas 6 tercapai (tombol tambah hilang dengan keterangan).
+- **Galeri toko:** panggung besar (1:1 ponsel, 4:5 desktop) + deret thumbnail (vertikal di kiri pada desktop, horizontal di ponsel), thumbnail aktif diberi bingkai ink, tombol sebelumnya/berikutnya 44px dengan penghitung "2 / 4" (`aria-live`), panah kiri/kanan di keyboard. Gambar memakai `srcset` ukuran thumbnail, kartu, dan detail. Tanpa foto: placeholder label kemasan seperti sekarang.
+
+## R2-6. Lembar komponen (`components.html`)
+
+Setiap komponen ditampilkan normal, hover, fokus, nonaktif, dan loading bila relevan.
+- **Select/dropdown kustom:** Radix Select (headless; panah, Home/End, ketik huruf awal, Escape). Di perangkat sentuh (`pointer: coarse`) dipakai `<select>` native bergaya yang sama, karena pemilih bawaan ponsel lebih nyaman dan sudah aksesibel.
+- **Menu akun:** dropdown Radix (Enter membuka, panah memilih, Escape menutup dan mengembalikan fokus).
+- **Toast:** tetap komponen sendiri dengan `aria-live`, tiga varian (berhasil dengan aksi, error, peringatan), hilang 5 detik dan dijeda saat disorot/difokus.
+- **Dialog konfirmasi:** tetap `<dialog>` bawaan (fokus terkurung, Escape menutup, fokus kembali ke pemicu); tombol berbahaya berkata kerja spesifik ("Hapus foto"); state loading mematikan kedua tombol.
+- **Input harga:** awalan "Rp", pemisah ribuan saat mengetik, rata kanan, angka tabular, hanya digit; nilai tersimpan bulat.
+- **Stepper:** 44px, batas stok dijelaskan dengan teks.
+- **Tombol:** normal, hover, fokus, nonaktif, loading, sekunder, bahaya.
+- **Tabel admin:** header menempel, urut kolom, menu "Aksi".
+- **Loading/fokus halaman:** skeleton, progres tipis, fokus dipindah ke judul setelah navigasi, judul dokumen per halaman.
+
+## Alasan keputusan Putaran 2 (R-31, satu baris)
+- Rel gelap di admin: sinyal visual instan "ini ruang kerja"; sisanya sama agar merek konsisten.
+- Radio kartu di checkout: dua pilihan saling meniadakan, terbaca jelas di ponsel, aksesibel bawaan.
+- Kode ambil serif besar berbingkai: satu-satunya hal yang pembeli tunjukkan di kasir, jadi ia jadi titik fokus halaman.
+- Invoice bertipografi sama dengan toko tanpa dekorasi: dokumen resmi harus tenang; bingkai tipis dan "Lunas" berbingkai ganda cukup sebagai identitas.
+- Urutan foto dengan tombol Kiri/Kanan: aksesibel keyboard dan sederhana; seret-lepas bisa menyusul.
+- Instans TTF statis untuk PDF: satu-satunya cara font merek ikut masuk PDF dengan pustaka ringan.
+
+## Keputusan yang saya butuhkan dari Anda
+1. **Identitas toko di dev** memakai data contoh (`Jl. Contoh No. 1, Kota Anda`, `0800-0000-0000`, `halo@tokoku.example`). Anda mengisi yang asli di Pengaturan toko nanti. Setuju?
+2. **Biaya kirim dan ambang** pada contoh: Rp 15.000 flat, gratis di atas Rp 500.000 (nilai awal dev yang bisa diubah di pengaturan).
+3. **Kode ambil:** 6 karakter dari huruf dan angka tanpa karakter membingungkan (tanpa 0/O, 1/I/L). Setuju?
+4. **Urutan foto** lewat tombol Kiri/Kanan (bukan seret-lepas). Setuju?
+5. **Select kustom** di desktop dan native di sentuh, seperti dijelaskan di R2-6. Setuju?
+
+---
+
+# Putaran 3: galeri foto di detail produk
+
+Masalah yang diperbaiki: foto terasa kecil saat produk dibuka, dan produk dengan banyak foto tidak nyaman dilihat. Screenshot sebelum dan sesudah (desktop 1440×900, ponsel 390×844, produk 1 foto dan 5 foto, plus lightbox) ada di `docs/design/round3/`, dibuat oleh `frontend/e2e/round3-shots.spec.ts` dengan foto contoh yang dirender di tempat (bukan foto produk asli). Putaran ini menggantikan butir "Galeri toko" di R2-5.
+
+## R3-1. Ukuran dan tata letak
+
+- **Rasio 4:5 di semua lebar**, sama dengan kartu katalog dan dengan potongan Cloudinary (`c_fill,ar_4:5`). Rasio 1:1 di ponsel dari Putaran 2 dihapus, karena foto 4:5 dari server terpotong lagi di kotak 1:1.
+- **Ponsel (< 640px):** foto selebar layar penuh tanpa gutter dan tanpa radius, 390×488 di layar 390 (sebelumnya 358×358). Lebar 640 sampai 1023px: galeri dibatasi 560px.
+- **Desktop (≥ 1024px):** dua kolom, keduanya lengket. Dengan lebih dari satu foto, kolom thumbnail vertikal (72px + jarak 12px) berada di kiri foto utama, setinggi foto utama; kolom info mengisi sisanya. `--gw` adalah lebar foto utama, `--th` kolom thumbnail (0 untuk satu foto, 84px untuk banyak foto): `--gw = min(share × (konten − jarak − th), (100dvh − header − 56px) × 0,8)`, `share` 0,58 untuk satu foto dan 0,6 untuk banyak foto. Angka 56px = jarak 48px ditambah 8px untuk breadcrumb, supaya foto 4:5 selesai di atas tepi bawah layar.
+- **Ukuran terukur di 1440×900** (Playwright `boundingBox`, px CSS, dicetak oleh `round3-shots.spec.ts` sebagai `UKURAN`; spec gagal bila foto utama banyak foto < 620px):
+
+  | | foto utama | thumbnail | kolom info |
+  |---|---|---|---|
+  | 1 foto | x 120, y 118,7, **624 × 780** | tidak ada | x 792, lebar 528 |
+  | 5 foto | x 204, y 118,7, **624 × 780** | kolom x 120, 72 × 780; tiap thumbnail 64 × 80, yang pertama di x 124, y 122,7 | x 876, lebar 444 |
+
+  Foto utama berakhir di y 898,7 (≤ 900), jadi tidak terpotong lipatan. Sebelumnya (thumbnail di bawah) 630 × 788 yang berakhir di y 907; pada percobaan pertama thumbnail ke samping dengan `share` 0,58 foto utama menyusut ke 584 × 730, lebih kecil dari sebelumnya, jadi `share` naik ke 0,6 dan batas tinggi dikoreksi. Harga yang dibayar: kolom info 444px (sebelumnya 484px).
+- **Kompromi yang disadari:** panah dan penanda "1 / 5" berada di dalam foto utama dan tetap terlihat; seluruh thumbnail terlihat tanpa menggulir. Bila produk punya lebih banyak thumbnail daripada tinggi foto (layar pendek, 6 foto di 1100×600), kolom menggulir sendiri dan mengikuti foto aktif; halaman tidak ikut bergulir.
+- **Tanpa layout shift:** kotak 4:5 memakai `aspect-ratio`, gambar diposisikan absolut di dalamnya, atribut `width`/`height` diisi, dan latar memakai nada `--tone-1` selama gambar dimuat.
+- **`object-fit: cover`** di panggung dan thumbnail (potongan tengah, sama dengan kartu). Lightbox memakai `contain` supaya gambar tidak dipotong lagi.
+
+## R3-2. Slider
+
+- **CSS scroll-snap**, tanpa pustaka carousel: lintasan `overflow-x: auto` dengan `scroll-snap-type: x mandatory`, satu foto per langkah. Geser dengan jari atau trackpad berjalan bawaan.
+- **Tombol sebelumnya/berikutnya** hanya di desktop: 44px, hairline, latar paper tembus, opasitas 0,72 dan penuh saat panggung disorot atau tombol difokus. Di ujung ditandai `aria-disabled` (bukan `disabled`, supaya fokus keyboard tidak hilang) dan dipudarkan. Tidak berputar dari foto terakhir ke pertama.
+- **Thumbnail** di kolom vertikal sebelah kiri panggung (desktop): 64×80, foto aktif diberi bingkai ink 2px dan `aria-current`, yang lain sedikit dipudarkan. Di ponsel thumbnail dan panah disembunyikan; cukup penanda "2 / 5".
+- **Penanda posisi** "2 / 5" di sudut kanan bawah foto, `output` dengan `aria-live`.
+- **Keyboard:** panah kiri/kanan saat fokus berada di dalam galeri atau lightbox.
+- **Pindah lewat tombol, thumbnail, dan keyboard tidak dianimasikan** (MOTION 1); geser dengan jari tetap mengikuti gerak bawaan. Ini juga membuat `prefers-reduced-motion` terpenuhi tanpa cabang khusus.
+- **Urutan:** foto utama selalu pertama, sisanya mengikuti urutan admin.
+- **Satu foto:** tanpa panah, thumbnail, dan penanda. **Tanpa foto:** placeholder label kemasan di kotak dan posisi yang sama.
+
+## R3-3. Lightbox
+
+Klik foto membuka tampilan layar penuh di atas ink, dengan tombol "Tutup" (teks, bukan ikon), panah, dan penanda posisi. Memakai **`<dialog>` bawaan** seperti `ConfirmDialog`: fokus terkurung, Escape menutup, fokus kembali ke foto pemicu. Klik di luar gambar juga menutup. Radix Dialog tidak ada di project, jadi tidak ditambahkan. Foto tampil utuh dengan rasio aslinya (tegak maupun mendatar), tidak pernah lebih besar dari layar. Cubit dua jari memperbesar sampai 4×, geser saat diperbesar, ketuk dua kali memperbesar 2,5× atau mengembalikan; dikerjakan `ZoomImage.tsx` dengan Pointer Events tanpa pustaka. Navigasi di dalam lightbox tidak menggeser galeri di belakangnya, sehingga fokus kembali tepat ke foto yang tadi diklik.
+
+## R3-4. Ukuran gambar
+
+- Ukuran bernama keempat di backend: **`LARGE` 1600px** (`f_auto,q_auto,c_limit,w_1600,h_1600`, tanpa potong 4:5, rasio asli), dikirim sebagai `largeUrl`. Dipakai lightbox dan layar rapat piksel (panggung 624 sampai 668px butuh lebih dari 960px di layar 2x).
+- `srcset` panggung: 160w, 480w, 960w, 1600w dengan `sizes="(min-width: 1024px) min(56vw, 670px), 100vw"`. Lightbox: 480w, 960w, 1600w dengan `sizes="(min-aspect-ratio: 4/5) 80vh, 100vw"`.
+- Foto pertama `loading="eager"` dan `fetchpriority="high"`; foto lain `loading="lazy"`. Gambar lightbox baru diminta saat dibuka.
+
+## R3-5. Aksesibilitas
+
+`alt` berisi nama produk dan posisi ("Kopi Gayo, foto 2 dari 5"; satu foto: nama produk saja). Tombol foto punya nama tambahan "perbesar" dan `aria-haspopup="dialog"`. Tiap slide adalah `group` dengan `aria-roledescription="slide"` dan label "2 dari 5". Hanya foto aktif yang masuk urutan Tab. Cincin fokus di lightbox memakai paper supaya terlihat di atas ink. Axe tanpa pelanggaran serious/critical untuk galeri desktop, ponsel, dan lightbox terbuka.
+
+## Kritik diri Putaran 3 (sebelum lawan sesudah) dan perbaikannya
+
+1. Versi pertama membuat galeri selebar 58% tanpa batas tinggi: foto 835px terpotong lipatan di 1440×900. Diperbaiki dengan batas tinggi layar di `--gw`.
+2. Penanda "1 / 5" semula disembunyikan di desktop karena thumbnail sudah menandai posisi. Dengan thumbnail di bawah lipatan pada layar 900px, jumlah foto jadi tidak terlihat. Penanda sekarang tampil di semua lebar.
+3. Halaman ponsel bisa digulir ke samping sejauh lima foto, karena teks khusus pembaca layar diposisikan absolut di luar lintasan. Diperbaiki, dan e2e sekarang memeriksa tidak ada overflow horizontal.
+4. Lightbox semula memotong foto 4:5 dan tidak bisa diperbesar di ponsel. Diperbaiki: `LARGE` tidak dipotong, foto tampil utuh, ada zoom cubit dan ketuk dua kali.
+5. Thumbnail di bawah foto jatuh di bawah lipatan 900px. Dipindah ke kolom kiri; pemindahan pertama menyusutkan foto utama (584px), lalu `share` dan batas tinggi dikoreksi sampai 624px.
+6. Screenshot ponsel gagal di langkah "tunggu gambar": selector `.gallery img` `.first()` mengenai `<img>` thumbnail yang `display:none` di ponsel (thumbnail ada lebih dulu di DOM). Salah selector di spec, bukan bug aplikasi; sekarang `.gallery .track img`.
+
+## Alasan keputusan Putaran 3 (satu baris)
+
+- 4:5 di mana-mana: satu potongan untuk kartu, panggung, dan thumbnail, tanpa potong ganda.
+- Lebar dibatasi tinggi layar: foto yang utuh terlihat lebih berguna daripada foto lebih lebar yang terpotong lipatan.
+- scroll-snap dan `<dialog>` bawaan: nol dependensi baru, perilaku sentuh dan fokus dikerjakan browser.
+- `LARGE` utuh (`c_limit`): lightbox harus menunjukkan foto apa adanya; tiga ukuran kecil tetap 4:5 agar kartu seragam, jadi tetap hanya empat variasi transformasi.
+- Kolom thumbnail di samping: semua thumbnail dan foto utama muat di 900px tanpa menggulir; biayanya kolom info 40px lebih sempit.

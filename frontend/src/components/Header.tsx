@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { useCart } from '../api/queries';
 import { useAuth } from '../auth/AuthContext';
 import { parseCatalogParams, toSearchParams } from '../lib/catalog';
+import { MenuButton } from './MenuButton';
 
 function SearchField({ id, className }: { id: string; className: string }) {
   const navigate = useNavigate();
@@ -29,50 +29,38 @@ function SearchField({ id, className }: { id: string; className: string }) {
   );
 }
 
+/** Menu akun pembeli. Header toko tidak pernah memuat tautan ke admin. */
 function AccountMenu() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDetailsElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
-
   return (
-    <details className="account" ref={ref} open={open} onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}>
-      <summary>{user?.name.split(' ')[0] ?? 'Akun'}</summary>
-      <div className="menu">
-        <p className="muted tiny">{user?.email}</p>
-        <Link to="/order">Riwayat order</Link>
-        {user?.role === 'ADMIN' && <Link to="/admin/produk">Kelola toko</Link>}
-        <button
-          type="button"
-          onClick={async () => {
+    <MenuButton
+      ariaLabel={`Menu akun ${user?.name ?? ''}`}
+      trigger={
+        <>
+          <span>{user?.name.split(' ')[0] ?? 'Akun'}</span>
+          <span className="sel-chev" aria-hidden="true" />
+        </>
+      }
+      header={user?.email}
+      entries={[
+        { key: 'orders', label: 'Riwayat order', asChild: <Link to="/order">Riwayat order</Link> },
+        {
+          key: 'logout',
+          label: 'Keluar',
+          separatorBefore: true,
+          onSelect: async () => {
             await logout();
             navigate('/');
-          }}
-        >
-          Keluar
-        </button>
-      </div>
-    </details>
+          },
+        },
+      ]}
+    />
   );
 }
 
 export function Header() {
   const { status } = useAuth();
-  const { pathname } = useLocation();
   const cart = useCart();
   const count = cart.data?.totalQuantity ?? 0;
 
@@ -85,7 +73,7 @@ export function Header() {
           </Link>
           <SearchField id="q-desktop" className="desktop" />
           <nav className="nav" aria-label="Utama">
-            {status === 'authenticated' ? <AccountMenu key={pathname} /> : status === 'anonymous' ? <NavLink to="/masuk">Masuk</NavLink> : null}
+            {status === 'authenticated' ? <AccountMenu /> : status === 'anonymous' ? <NavLink to="/masuk">Masuk</NavLink> : null}
             <NavLink to="/keranjang">
               Keranjang
               {count > 0 && (

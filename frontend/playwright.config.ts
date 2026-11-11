@@ -11,13 +11,14 @@ export default defineConfig({
   reporter: [['list']],
   use: { baseURL: FRONTEND, trace: 'retain-on-failure', locale: 'id-ID', viewport: { width: 1280, height: 800 } },
   projects: [
-    { name: 'e2e', testMatch: /(shop|admin|a11y)\.spec\.ts/, use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } } },
-    { name: 'screens', testMatch: /screens\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
+    { name: 'e2e', testMatch: /(shop|admin|a11y|realm|fulfillment|photos|gallery|live)\.spec\.ts/, use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } } },
+    { name: 'screens', testMatch: /(screens|email-shots|round3-shots)\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
   ],
   // Backend (profil dev, provider fake, data seed) dan frontend dijalankan otomatis; yang sudah hidup dipakai ulang.
   webServer: [
     {
-      command: 'bash ../scripts/dev-backend.sh',
+      // e2e tidak boleh memakai layanan sungguhan (Midtrans, Cloudinary, SMTP) walau kuncinya ada di .env
+      command: 'APP_PAYMENT_PROVIDER=fake APP_IMAGES_PROVIDER=fake APP_MAIL_ENABLED=false bash ../scripts/dev-backend.sh',
       url: 'http://localhost:8080/actuator/health',
       reuseExistingServer: true,
       timeout: 240_000,

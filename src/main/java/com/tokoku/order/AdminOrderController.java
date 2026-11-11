@@ -31,6 +31,12 @@ public class AdminOrderController {
         return service.listAll(status, pageable);
     }
 
+    @Operation(summary = "Ringkasan ringan untuk polling: jumlah order PAID dan yang dibayar sejak waktu tertentu (ADMIN)")
+    @GetMapping("/summary")
+    public OrderSummaryResponse summary(@RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.Instant since) {
+        return service.summary(since);
+    }
+
     @Operation(summary = "Detail order apa pun (ADMIN)")
     @GetMapping("/{id}")
     public OrderResponse get(@PathVariable Long id) {
@@ -40,6 +46,6 @@ public class AdminOrderController {
     @Operation(summary = "Majukan status order: PROCESSING, SHIPPED, COMPLETED (ADMIN)")
     @PatchMapping("/{id}/status")
     public OrderResponse changeStatus(@PathVariable Long id, @Valid @RequestBody StatusRequest request) {
-        return service.adminChangeStatus(id, request.status());
+        return service.adminChangeStatus(id, request);
     }
 }

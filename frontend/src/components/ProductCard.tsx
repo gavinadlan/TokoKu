@@ -12,7 +12,7 @@ export function StockNote({ stock }: { stock: number }) {
 export function ProductCard({ product, showCategory = true }: { product: Product; showCategory?: boolean }) {
   return (
     <Link className="card" to={`/produk/${product.id}`} data-out={product.stock <= 0}>
-      <ProductVisual id={product.id} categoryId={product.categoryId} name={product.name} imageUrl={product.imageUrl} />
+      <ProductVisual id={product.id} categoryId={product.categoryId} name={product.name} images={product.images} />
       <div className="info">
         {showCategory && <span className="cat">{product.categoryName}</span>}
         <span className="name">{product.name}</span>

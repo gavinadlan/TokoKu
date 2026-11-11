@@ -29,28 +29,31 @@ public class RefreshTokenService {
     private final UserRepository users;
     private final JwtService jwt;
     private final Duration ttl;
+    private final Duration adminTtl;
 
     public RefreshTokenService(RefreshTokenRepository tokens, UserRepository users, JwtService jwt,
-            @Value("${app.jwt.refresh-days:14}") long refreshDays) {
+            @Value("${app.jwt.refresh-days:14}") long refreshDays,
+            @Value("${app.jwt.admin-refresh-hours:12}") long adminRefreshHours) {
         this.tokens = tokens;
         this.users = users;
         this.jwt = jwt;
         this.ttl = Duration.ofDays(refreshDays);
+        this.adminTtl = Duration.ofHours(adminRefreshHours);
     }
 
     /** Menerbitkan refresh token baru; nilai polos hanya dikembalikan sekali ini. */
     @Transactional
-    public String issue(Long userId) {
+    public String issue(Long userId, Realm realm) {
         byte[] bytes = new byte[32];
         RANDOM.nextBytes(bytes);
         String raw = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-        tokens.save(new RefreshToken(userId, hash(raw), Instant.now().plus(ttl)));
+        tokens.save(new RefreshToken(userId, hash(raw), Instant.now().plus(realm == Realm.ADMIN ? adminTtl : ttl), realm));
         return raw;
     }
 
     // noRollbackFor: pencabutan massal saat deteksi pemakaian ulang harus tersimpan walau request ditolak (401)
     @Transactional(noRollbackFor = UnauthorizedException.class)
-    public TokenResponse refresh(String rawToken) {
+    public TokenResponse refresh(String rawToken, Realm realm) {
         RefreshToken t = tokens.findByHashForUpdate(hash(rawToken))
                 .orElseThrow(() -> new UnauthorizedException("Invalid refresh token"));
         if (t.isRevoked()) {
@@ -58,18 +61,26 @@ public class RefreshTokenService {
             tokens.revokeAllForUser(t.getUserId(), Instant.now());
             throw new UnauthorizedException("Invalid refresh token");
         }
+        if (!t.inRealm(realm)) {
+            // Token dari realm lain: ditolak generik, tidak dicabut (bukan bukti pencurian)
+            throw new UnauthorizedException("Invalid refresh token");
+        }
         if (t.isExpired()) {
             throw new UnauthorizedException("Refresh token expired");
         }
-        t.revoke();
         User user = users.findById(t.getUserId()).orElseThrow(() -> new NotFoundException("User not found"));
-        return new TokenResponse(jwt.issue(user), "Bearer", jwt.ttlSeconds(), issue(user.getId()), UserResponse.from(user));
+        // Peran bisa berubah sejak token terbit: realm admin hanya untuk ADMIN, realm toko hanya untuk USER
+        if (!AuthRules.allows(user, realm)) {
+            throw new UnauthorizedException("Invalid refresh token");
+        }
+        t.revoke();
+        return new TokenResponse(jwt.issue(user, realm), "Bearer", jwt.ttlSeconds(realm), issue(user.getId(), realm), UserResponse.from(user));
     }
 
     /** Idempoten: token tidak dikenal atau sudah dicabut tetap dianggap berhasil. */
     @Transactional
-    public void revoke(String rawToken) {
-        tokens.findByHashForUpdate(hash(rawToken)).ifPresent(RefreshToken::revoke);
+    public void revoke(String rawToken, Realm realm) {
+        tokens.findByHashForUpdate(hash(rawToken)).filter(t -> t.inRealm(realm)).ifPresent(RefreshToken::revoke);
     }
 
     @Transactional

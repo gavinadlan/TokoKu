@@ -18,6 +18,9 @@ public class RefreshToken {
     @Column(name = "token_hash", nullable = false, unique = true, updatable = false)
     private String tokenHash;
 
+    @Column(nullable = false, updatable = false)
+    private String realm;
+
     @Column(name = "expires_at", nullable = false, updatable = false)
     private Instant expiresAt;
 
@@ -29,8 +32,9 @@ public class RefreshToken {
 
     protected RefreshToken() {}
 
-    public RefreshToken(Long userId, String tokenHash, Instant expiresAt) {
+    public RefreshToken(Long userId, String tokenHash, Instant expiresAt, Realm realm) {
         this.userId = userId;
+        this.realm = realm.claim();
         this.tokenHash = tokenHash;
         this.expiresAt = expiresAt;
     }
@@ -40,4 +44,5 @@ public class RefreshToken {
     public boolean isRevoked() { return revokedAt != null; }
     public boolean isExpired() { return expiresAt.isBefore(Instant.now()); }
     public Long getUserId() { return userId; }
+    public boolean inRealm(Realm r) { return r.claim().equals(realm); }
 }
