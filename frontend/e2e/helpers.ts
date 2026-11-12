@@ -2,11 +2,12 @@ import { expect, type APIRequestContext, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-export const API = 'http://localhost:8080';
+export const API = process.env.E2E_API ?? 'http://localhost:8080';
 export const PASSWORD = 'password-uji-123';
 
 /** Kredensial admin lokal dibuat oleh scripts/dev-backend.sh dan disimpan di .dev-admin.env (di-gitignore). */
 export function adminCredentials(): { email: string; password: string } {
+  if (process.env.E2E_ADMIN_EMAIL) return { email: process.env.E2E_ADMIN_EMAIL, password: process.env.E2E_ADMIN_PASSWORD ?? '' };
   const text = readFileSync(fileURLToPath(new URL('../../.dev-admin.env', import.meta.url)), 'utf8');
   const get = (k: string) => text.match(new RegExp(`^${k}=(.*)$`, 'm'))?.[1]?.trim() ?? '';
   return { email: get('ADMIN_EMAIL'), password: get('ADMIN_PASSWORD') };

@@ -17,6 +17,13 @@ export function formatDateTimeShort(iso: string): string {
   return dateTimeShort.format(new Date(iso));
 }
 
+const compactParts = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+/** "12 Nov, 22.50": untuk kartu ponsel. */
+export function formatDateTimeCompact(iso: string): string {
+  const p = Object.fromEntries(compactParts.formatToParts(new Date(iso)).map((x) => [x.type, x.value]));
+  return `${p.day} ${p.month}, ${p.hour}.${p.minute}`;
+}
+
 export function formatDate(iso: string): string {
   return dateOnly.format(new Date(iso));
 }

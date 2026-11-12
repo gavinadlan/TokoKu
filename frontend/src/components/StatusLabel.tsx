@@ -1,5 +1,6 @@
 import { STATUS_LABEL, STATUS_TONE, type OrderStatus } from '../lib/status';
+import { Badge } from './Badge';
 
 export function StatusLabel({ status }: { status: OrderStatus }) {
-  return <span className={`status ${STATUS_TONE[status]}`}>{STATUS_LABEL[status]}</span>;
+  return <Badge tone={STATUS_TONE[status]}>{STATUS_LABEL[status]}</Badge>;
 }

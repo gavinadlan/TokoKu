@@ -237,3 +237,26 @@ Klik foto membuka tampilan layar penuh di atas ink, dengan tombol "Tutup" (teks,
 - scroll-snap dan `<dialog>` bawaan: nol dependensi baru, perilaku sentuh dan fokus dikerjakan browser.
 - `LARGE` utuh (`c_limit`): lightbox harus menunjukkan foto apa adanya; tiga ukuran kecil tetap 4:5 agar kartu seragam, jadi tetap hanya empat variasi transformasi.
 - Kolom thumbnail di samping: semua thumbnail dan foto utama muat di 900px tanpa menggulir; biayanya kolom info 40px lebih sempit.
+
+## Putaran Admin Ponsel: kartu, Badge, tab menu
+
+**Masalah (screenshot 390px):** lencana "Ambil di toko" pecah dua baris dan garisnya memotong teks; tabel order terpotong di kanan (status, total, tombol tak terlihat); tanggal dan nama terbungkus 3 baris; tab menu mepet.
+
+**Keputusan**
+- **Satu `Badge`** (`components/Badge.tsx`, kelas `.badge-*`) untuk status order, jenis pengambilan, dan Aktif/Nonaktif. `white-space: nowrap`, `width: fit-content`, tinggi mengikuti isi (padding 3px 10px, `line-height` 1.25), teks 13px. Nada memakai token tema (`warn-*`, `ok-*`, `err-*`, `accent-hover`), jadi ikut palet aktif. Lencana bukan kontrol, jadi tidak diberi target 44px; tombol aksi tetap min 44px. `StatusLabel` kini membungkus `Badge`, jadi halaman pembeli ikut berubah dari titik+teks menjadi pil.
+- **Daftar menjadi kartu di bawah 1100px**, bukan 768px: tabel order butuh sekitar 880px dan rel samping 232px ikut menyempit di 900-1100px, jadi di 768px dan 1024px tabel tetap terpotong. Kartu memakai `<ul>/<li>` (`OrderCard`, `.pcard`), dua kolom di lebar tablet. Tabel dan kartu sama-sama ada di DOM; CSS menyembunyikan satu (`display: none`, jadi tidak ada di pohon aksesibilitas). Kartu order: nomor + waktu "12 Nov, 22.50", penerima (detail di `<details>`), total, Badge status + jenis, tombol utama selebar kartu bernama "Proses pesanan, order 0063", lalu Lihat/Unduh PDF dua kolom. Order baru: titik dan sorotan lembut tetap ada.
+- **Urutan** hilang bersama kepala kolom, jadi di mode kartu ada `Select` "Urutkan" (Order dan Produk).
+- **Bar atas:** di ponsel Status dan Urutkan selebar layar; hitungan, "Diperbarui", dan tombol Muat ulang satu baris (teks kiri, tombol kanan). `aria-live="polite"` tetap pada hitungan saja.
+- **Tab menu** (`useScrollFade`): digeser horizontal, tepi memudar (mask) hanya di sisi yang masih punya tab, tab aktif digulirkan ke tengah saat halaman berganti. Fokus tetap berurutan di DOM.
+- **Halaman lain:** Produk jadi kartu; Kategori (dua kolom) dan Pengaturan sudah muat di 360px; aksi foto produk `nowrap` dan boleh turun baris per kelompok.
+- **Audit:** `node scripts/admin-shots.mjs sebelum|sesudah` memotret Order, Produk, Kategori, Pengaturan, dan Ubah produk di 360/390/768/1440 ke `docs/design/admin-mobile/` dan gagal bila halaman melebar atau tabel tampak terpotong.
+
+**Kritik diri (satu putaran)**
+1. Kartu muncul juga di desktop: `.pcards { display: grid }` ditulis setelah `.only-narrow { display: none }` dan menang. Tertangkap oleh e2e (tombol "Aksi" ganda, strict mode). Display dasar dihapus; media query yang mengatur tampil.
+2. Titik ganti 768px ternyata salah: di 768px tabel masih terpotong dan tanggal terbungkus 3 baris. Dinaikkan ke 1100px; sel tanggal dan nomor `nowrap`.
+3. Di kisi dua kolom Badge ikut melar tinggi (baris grid melebar). Ditambah `align-content: start` pada kartu dan `align-items: flex-start` pada baris Badge.
+4. Badge baru memutus selektor e2e lama (`.status`). Tes diganti ke `.badge`; tiga tes juga memakai `localhost:8080` tertulis, kini lewat `API`.
+5. Di 360px kolom grid admin melebar ke 370px (tab menu yang lebar menentukan lebar kolom `1fr`), jadi halaman bisa digeser 10px di ponsel sungguhan. Audit awal lolos karena membandingkan dengan `innerWidth`, yang ikut melebar di emulasi ponsel; pembanding kini `visualViewport.width` (skrip dan e2e), dan kolom dibuat `minmax(0, 1fr)`.
+6. Kelemahan yang tersisa: kolom Alamat di Pengaturan masih `input` satu baris (alamat panjang terpotong di layar sempit; bisa dibuat textarea); `<details>` nama penerima di kartu menambah satu ketukan untuk melihat telepon/alamat; tabel dan kartu sama-sama dirender (dua kali kerja render per halaman 15 baris, tidak terukur menjadi masalah).
+
+**Pengujian:** unit `Badge`, `OrderCard`, `formatDateTimeCompact`; e2e `admin-mobile.spec.ts` (proses order sampai "Siap diambil" dari kartu, tab aktif terlihat di 360px, axe tanpa serious/critical di 4 halaman admin) berjalan di backend dan DB terpisah (`npm run e2e:mobile`, DB `tokoku_mobile`, port 18082); `npm run e2e:isolated` menjalankan suite desktop di sana, bukan di DB dev.

@@ -14,6 +14,8 @@
     "fetch:api": "curl -sf ${VITE_API_URL:-http://localhost:8080}/v3/api-docs | python3 -m json.tool > openapi.json && npm run gen:api",
     "e2e": "playwright test",
     "e2e:firstlogin": "playwright test -c playwright.firstlogin.config.ts",
+    "e2e:mobile": "playwright test -c playwright.mobile.config.ts",
+    "e2e:isolated": "E2E_REGRESI=1 playwright test -c playwright.mobile.config.ts",
     "shots": "playwright test --project=screens"
   },
   "dependencies": {

@@ -1,4 +1,4 @@
-import { formatRupiah, productNumber, formatDate } from './format';
+import { formatRupiah, productNumber, formatDate, formatDateTimeCompact } from './format';
 
 describe('formatRupiah', () => {
   it('memakai pemisah ribuan titik dan awalan Rp', () => {
@@ -22,5 +22,11 @@ describe('productNumber', () => {
 describe('formatDate', () => {
   it('memakai nama bulan bahasa Indonesia', () => {
     expect(formatDate('2026-11-10T03:00:00Z')).toContain('November');
+  });
+});
+
+describe('formatDateTimeCompact', () => {
+  it('hari, bulan singkat, jam.menit tanpa tahun', () => {
+    expect(formatDateTimeCompact('2026-11-12T15:50:00')).toMatch(/^12 Nov, 15\.50$/);
   });
 });

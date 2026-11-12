@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { uniqueEmail, PASSWORD } from './helpers';
+import { uniqueEmail, PASSWORD, API } from './helpers';
 
 test.describe('alur belanja pelanggan', () => {
   test('register, cari, tambah ke keranjang, checkout, bayar (simulasi), order PAID', async ({ page }) => {
@@ -48,9 +48,9 @@ test.describe('alur belanja pelanggan', () => {
 
     // order tampil PAID
     await page.getByRole('link', { name: 'Lihat order' }).click();
-    await expect(page.locator('.status').first()).toHaveText('Dibayar');
+    await expect(page.locator('.badge').first()).toHaveText('Dibayar');
     await page.goto('/order');
-    await expect(page.locator('.orders .status').first()).toHaveText('Dibayar');
+    await expect(page.locator('.orders .badge').first()).toHaveText('Dibayar');
   });
 
   test('pembayaran kedaluwarsa membatalkan order dan stok kembali', async ({ page, request }) => {
@@ -73,7 +73,7 @@ test.describe('alur belanja pelanggan', () => {
     await page.getByRole('button', { name: 'Buat pesanan dan bayar' }).click();
     await page.getByRole('button', { name: 'Simulasikan kedaluwarsa' }).click();
     await expect(page.getByRole('heading', { name: 'Pembayaran tidak berhasil' })).toBeVisible();
-    expect((await request.get('http://localhost:8080/api/products?q=dripper')).ok()).toBeTruthy();
+    expect((await request.get(`${API}/api/products?q=dripper`)).ok()).toBeTruthy();
   });
 
   test('guard: anonim diarahkan masuk; pembeli tidak punya akses admin', async ({ page }) => {
