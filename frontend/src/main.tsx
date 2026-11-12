@@ -7,6 +7,9 @@ import { ApiError } from './lib/errors';
 import { router } from './router';
 import './styles/app.css';
 
+// theme-color mengikuti token --paper (varian aktif), bukan nilai tertulis di index.html
+document.querySelector('meta[name="theme-color"]')?.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--paper').trim());
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
