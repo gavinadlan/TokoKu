@@ -7,8 +7,8 @@
   --ink-subtle: #6B6055;
   --line: #D8CDBE;
   --line-strong: #8F8478;
-  --accent: #2E4B3C;
-  --accent-hover: #243C30;
+  --accent: #9A3B1A;
+  --accent-hover: #7F2F14;
   --on-accent: #F6F1E9;
   --ok-bg: #DCE7DD;
   --ok-ink: #24392D;
@@ -32,8 +32,8 @@
   --tone-6: #3A2D25;
   --card: #FFFFFF;
   --invoice-line: #C9BEAE;
-  --invoice-accent: #1F3A2C;
-  --ink-rgb: 27 22 19; --paper-rgb: 246 241 233; --accent-rgb: 46 75 60;
+  --invoice-accent: #7F2F14;
+  --ink-rgb: 27 22 19; --paper-rgb: 246 241 233; --accent-rgb: 154 59 26;
   --font-display: "Fraunces Variable", "Iowan Old Style", Georgia, serif;
   --shadow-float: 0 8px 24px rgb(27 22 19 / 0.12);
 }
