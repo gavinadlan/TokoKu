@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Navigate, NavLink, Outlet, ScrollRestoration, useLocation } from 'react-router';
 import { useAdminOrderSummary, useAdminStoreSettings } from '../../api/queries';
 import { useAdminAuth } from '../../auth/AdminAuthContext';
@@ -5,6 +6,30 @@ import { decideAccess } from '../../auth/guard';
 import { getSeenAt } from '../../lib/adminSeen';
 import { RouteFocus } from '../../components/RouteFocus';
 import { ListSkeleton } from '../../components/States';
+
+/**
+ * Tab menu admin di ponsel: bisa digeser, tepi memudar bila masih ada tab di luar layar, dan tab aktif
+ * digulirkan ke tampilan. Di desktop (rel samping) tidak berefek.
+ */
+function useScrollFade(activeKey: string) {
+  const ref = useRef<HTMLElement>(null);
+  const [fade, setFade] = useState({ l: false, r: false });
+  const update = useCallback(() => {
+    const el = ref.current;
+    if (el) setFade({ l: el.scrollLeft > 4, r: el.scrollLeft + el.clientWidth < el.scrollWidth - 4 });
+  }, []);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const cur = el.querySelector<HTMLElement>('[aria-current="page"]');
+    if (cur && el.scrollWidth > el.clientWidth) el.scrollTo({ left: cur.offsetLeft - (el.clientWidth - cur.offsetWidth) / 2, behavior: 'auto' });
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [activeKey, update]);
+  return { ref, update, fadeL: fade.l, fadeR: fade.r };
+}
 
 /**
  * Kerangka admin: rel samping gelap (ponsel: baris tab), terpisah dari tampilan toko. Tanpa sesi admin
@@ -19,6 +44,7 @@ export function AdminShell() {
   const onOrders = location.pathname.startsWith('/admin/order');
   const seenAt = getSeenAt();
   const summary = useAdminOrderSummary(seenAt, !onOrders && seenAt !== null);
+  const { ref: navRef, update: navScroll, fadeL, fadeR } = useScrollFade(location.pathname + decision);
   const fresh = !onOrders && seenAt ? summary.data?.paidSince ?? 0 : 0;
 
   if (decision === 'wait') return <div className="adm" style={{ minHeight: '100vh', padding: 'var(--s-7) var(--gutter)' }}><ListSkeleton /></div>;
@@ -36,7 +62,7 @@ export function AdminShell() {
           <b>TokoKu</b>
           <i>Admin</i>
         </div>
-        <nav aria-label="Kelola toko">
+        <nav aria-label="Kelola toko" ref={navRef} onScroll={navScroll} data-fade-l={fadeL || undefined} data-fade-r={fadeR || undefined}>
           <NavLink to="/admin/produk">Produk</NavLink>
           <NavLink to="/admin/kategori">Kategori</NavLink>
           <NavLink to="/admin/order">

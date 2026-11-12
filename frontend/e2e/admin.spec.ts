@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { adminLoginUI, apiPaidOrder, apiUser } from './helpers';
+import { adminLoginUI, apiPaidOrder, apiUser, API } from './helpers';
 
 test.describe('admin', () => {
   test('buat produk lewat form, muncul di katalog publik, lalu dinonaktifkan', async ({ page }) => {
@@ -81,7 +81,7 @@ test.describe('admin', () => {
     await page.getByLabel('Jam buka').fill('Senin sampai Sabtu, 09.00 sampai 17.00');
     await page.getByRole('button', { name: 'Simpan pengaturan' }).click();
     await expect(page.getByRole('status').getByText('Pengaturan toko disimpan.')).toBeVisible();
-    const store = await (await request.get('http://localhost:8080/api/store')).json();
+    const store = await (await request.get(`${API}/api/store`)).json();
     expect(store.openingHours).toBe('Senin sampai Sabtu, 09.00 sampai 17.00');
     expect(store.configured).toBe(true);
     await expect(page.getByText('Lengkapi pengaturan toko.')).toHaveCount(0);

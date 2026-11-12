@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAdminOrders, useAdminOrderStatus, useAdminOrderSummary } from '../../api/queries';
 import type { Order } from '../../api/types';
+import { Badge } from '../../components/Badge';
 import { FormDialog } from '../../components/FormDialog';
 import { InvoiceButtons } from '../../components/InvoiceButtons';
 import { Pager } from '../../components/Pager';
@@ -15,6 +16,7 @@ import { formatDateTimeShort, formatRupiah } from '../../lib/format';
 import { adminNextAction, FULFILLMENT_LABEL, ORDER_STATUSES, STATUS_LABEL, type AdminAction, type Fulfillment, type OrderStatus } from '../../lib/status';
 import { useDocumentTitle } from '../../lib/useDocumentTitle';
 import { AdminPage } from './AdminShell';
+import { OrderCard } from './OrderCard';
 
 type OrderSort = 'id,desc' | 'id,asc' | 'createdAt,desc' | 'createdAt,asc' | 'totalAmount,desc' | 'totalAmount,asc';
 
@@ -68,11 +70,17 @@ export function AdminOrdersPage() {
           <label htmlFor="o-status">Status</label>
           <Select id="o-status" value={status} onChange={(v) => { setStatus(v as OrderStatus | 'all'); setPage(1); }} options={[{ value: 'all', label: 'Semua status' }, ...ORDER_STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))]} />
         </div>
+        <div className="fld sort-narrow">
+          <label htmlFor="o-sort">Urutkan</label>
+          <Select id="o-sort" value={`${sort.field},${sort.dir}`} onChange={(v) => { const [field, dir] = v.split(',') as [string, SortDir]; setSort({ field, dir }); setPage(1); }} options={[{ value: 'createdAt,desc', label: 'Terbaru' }, { value: 'createdAt,asc', label: 'Terlama' }, { value: 'totalAmount,desc', label: 'Total tertinggi' }, { value: 'totalAmount,asc', label: 'Total terendah' }]} />
+        </div>
         <div className="live-meta">
-          <span role="status" aria-live="polite" className="live-count">
-            {summary.data ? (summary.data.needsAction > 0 ? `${summary.data.needsAction} order perlu diproses` : 'Tidak ada order menunggu diproses') : ''}
-          </span>
-          <span className="muted small-note">Diperbarui {orders.dataUpdatedAt ? agoLabel(orders.dataUpdatedAt, now) : '-'}</span>
+          <div className="live-text">
+            <span role="status" aria-live="polite" className="live-count">
+              {summary.data ? (summary.data.needsAction > 0 ? `${summary.data.needsAction} order perlu diproses` : 'Tidak ada order menunggu diproses') : ''}
+            </span>
+            <span className="muted small-note">Diperbarui {orders.dataUpdatedAt ? agoLabel(orders.dataUpdatedAt, now) : '-'}</span>
+          </div>
           <button type="button" className="btn ghost sm" onClick={reload} disabled={orders.isFetching}>{orders.isFetching ? 'Memuat...' : 'Muat ulang'}</button>
         </div>
       </div>
@@ -87,7 +95,7 @@ export function AdminOrdersPage() {
         <EmptyState title="Tidak ada order">Belum ada order dengan status ini.</EmptyState>
       ) : (
         <>
-          <div className="tablebox" tabIndex={0} role="region" aria-label="Daftar order">
+          <div className="tablebox only-wide" tabIndex={0} role="region" aria-label="Daftar order">
             <table className="tbl" style={{ minWidth: 880 }}>
               <thead>
                 <tr>
@@ -121,7 +129,7 @@ export function AdminOrdersPage() {
                           </div>
                         </details>
                       </td>
-                      <td><span className={`chip-s ${o.fulfillmentType === 'PICKUP' ? 'pk' : ''}`}>{FULFILLMENT_LABEL[o.fulfillmentType as Fulfillment]}</span></td>
+                      <td><Badge tone={o.fulfillmentType === 'PICKUP' ? 'accent' : 'neutral'}>{FULFILLMENT_LABEL[o.fulfillmentType as Fulfillment]}</Badge></td>
                       <td className="n">{formatRupiah(o.totalAmount)}</td>
                       <td><StatusLabel status={o.status as OrderStatus} /></td>
                       <td className="act-cell">
@@ -138,6 +146,11 @@ export function AdminOrdersPage() {
               </tbody>
             </table>
           </div>
+          <ul className="ocards only-narrow" aria-label="Daftar order">
+            {orders.data.content.map((o) => (
+              <OrderCard key={o.id} order={o} isNew={isNewSince(o.invoicedAt, seenAt)} action={adminNextAction(o.status as OrderStatus, o.fulfillmentType as Fulfillment)} busy={change.isPending} onAction={start} />
+            ))}
+          </ul>
           <Pager page={page} totalPages={orders.data.page.totalPages} onChange={setPage} />
         </>
       )}

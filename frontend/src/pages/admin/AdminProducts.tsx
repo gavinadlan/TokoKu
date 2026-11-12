@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { useAdminProducts, useCategories, useDeactivateProduct, type ProductSort } from '../../api/queries';
 import type { Product } from '../../api/types';
+import { Badge } from '../../components/Badge';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { MenuButton } from '../../components/MenuButton';
 import { Pager } from '../../components/Pager';
@@ -30,6 +31,11 @@ export function AdminProductsPage() {
   const onSort = (field: string) => { setSort((s) => nextSort(s, field)); setPage(1); };
 
   const total = products.data?.page.totalElements;
+  const entriesFor = (p: Product) => [
+    { key: 'edit', label: 'Ubah produk', asChild: <Link to={`/admin/produk/${p.id}`}>Ubah produk</Link> },
+    { key: 'photos', label: 'Kelola foto', asChild: <Link to={`/admin/produk/${p.id}#foto`}>Kelola foto <span className="hint">{p.images.length} foto</span></Link> },
+    ...(p.active ? [{ key: 'off', label: 'Nonaktifkan', danger: true, separatorBefore: true, onSelect: () => setToDeactivate(p) }] : []),
+  ];
 
   return (
     <AdminPage title="Produk" sub={total === undefined ? undefined : `${total} produk`} actions={<Link className="btn small" to="/admin/produk/baru">Tambah produk</Link>}>
@@ -38,13 +44,17 @@ export function AdminProductsPage() {
           Cari nama
           <input className="ctl" type="search" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
         </label>
-        <div className="fld">
+        <div className="fld half">
           <label htmlFor="f-status">Status</label>
           <Select id="f-status" value={active} onChange={(v) => { setActive(v as typeof active); setPage(1); }} options={[{ value: 'all', label: 'Semua' }, { value: 'true', label: 'Aktif' }, { value: 'false', label: 'Nonaktif' }]} />
         </div>
-        <div className="fld">
+        <div className="fld half">
           <label htmlFor="f-cat">Kategori</label>
           <Select id="f-cat" value={category} onChange={(v) => { setCategory(v); setPage(1); }} options={[{ value: 'all', label: 'Semua kategori' }, ...(categories.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))]} />
+        </div>
+        <div className="fld sort-narrow">
+          <label htmlFor="f-sort">Urutkan</label>
+          <Select id="f-sort" value={`${sort.field},${sort.dir}`} onChange={(v) => { const [field, dir] = v.split(',') as [string, SortDir]; setSort({ field, dir }); setPage(1); }} options={[{ value: 'id,desc', label: 'Terbaru' }, { value: 'id,asc', label: 'Terlama' }, { value: 'name,asc', label: 'Nama A-Z' }, { value: 'price,desc', label: 'Harga tertinggi' }, { value: 'price,asc', label: 'Harga terendah' }, { value: 'stock,asc', label: 'Stok tersedikit' }]} />
         </div>
       </div>
 
@@ -58,7 +68,7 @@ export function AdminProductsPage() {
         <EmptyState title="Tidak ada produk yang cocok">Ubah kata kunci atau filter.</EmptyState>
       ) : (
         <>
-          <div className="tablebox" tabIndex={0} role="region" aria-label="Daftar produk">
+          <div className="tablebox only-wide" tabIndex={0} role="region" aria-label="Daftar produk">
             <table className="tbl">
               <thead>
                 <tr>
@@ -85,17 +95,13 @@ export function AdminProductsPage() {
                     </td>
                     <td className="n">{formatRupiah(p.price)}</td>
                     <td className="n">{p.stock}</td>
-                    <td><span className={`status ${p.active ? 'done' : 'cancelled'}`}>{p.active ? 'Aktif' : 'Nonaktif'}</span></td>
+                    <td><Badge tone={p.active ? 'done' : 'cancelled'}>{p.active ? 'Aktif' : 'Nonaktif'}</Badge></td>
                     <td>
                       <MenuButton
                         triggerClassName="row-trigger"
                         ariaLabel={`Aksi untuk ${p.name}`}
                         trigger="Aksi"
-                        entries={[
-                          { key: 'edit', label: 'Ubah produk', asChild: <Link to={`/admin/produk/${p.id}`}>Ubah produk</Link> },
-                          { key: 'photos', label: 'Kelola foto', asChild: <Link to={`/admin/produk/${p.id}#foto`}>Kelola foto <span className="hint">{p.images.length} foto</span></Link> },
-                          ...(p.active ? [{ key: 'off', label: 'Nonaktifkan', danger: true, separatorBefore: true, onSelect: () => setToDeactivate(p) }] : []),
-                        ]}
+                        entries={entriesFor(p)}
                       />
                     </td>
                   </tr>
@@ -103,6 +109,19 @@ export function AdminProductsPage() {
               </tbody>
             </table>
           </div>
+          <ul className="pcards only-narrow" aria-label="Daftar produk">
+            {products.data.content.map((p) => (
+              <li key={p.id} className="pcard">
+                <div className="nm-thumb"><ProductVisual id={p.id} categoryId={p.categoryId} name="" images={p.images} size="thumb" /></div>
+                <div className="pcard-main">
+                  <Link to={`/admin/produk/${p.id}`} className="nm-link">{p.name}</Link>
+                  <small className="muted">{p.categoryName}{p.images.length > 0 ? ` · ${p.images.length} foto` : ''}</small>
+                  <span className="pcard-meta"><b className="tnum">{formatRupiah(p.price)}</b><span className="muted tnum">Stok {p.stock}</span><Badge tone={p.active ? 'done' : 'cancelled'}>{p.active ? 'Aktif' : 'Nonaktif'}</Badge></span>
+                </div>
+                <MenuButton triggerClassName="row-trigger" ariaLabel={`Aksi untuk ${p.name}`} trigger="Aksi" entries={entriesFor(p)} />
+              </li>
+            ))}
+          </ul>
           <Pager page={page} totalPages={products.data.page.totalPages} onChange={setPage} />
         </>
       )}

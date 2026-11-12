@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { PASSWORD, adminLoginUI, apiPaidOrder, apiUser, loginUI, uniqueEmail } from './helpers';
+import { PASSWORD, adminLoginUI, apiPaidOrder, apiUser, loginUI, uniqueEmail, API } from './helpers';
 
 async function register(page: import('@playwright/test').Page, name = 'Siti Rahmawati') {
   const email = uniqueEmail();
@@ -110,7 +110,7 @@ test.describe('ambil di toko dan pengiriman', () => {
     await dialog.getByRole('button', { name: 'Verifikasi dan selesaikan' }).click();
     await expect(row).toContainText('Selesai');
     await page.reload();
-    await expect(page.locator('.status').first()).toHaveText('Selesai');
+    await expect(page.locator('.badge').first()).toHaveText('Selesai');
   });
 
   test('invoice: unduh PDF berstatus 200 bertipe application/pdf dan berkas valid; belum dibayar tidak punya invoice', async ({ page, request }) => {
@@ -138,7 +138,7 @@ test.describe('ambil di toko dan pengiriman', () => {
     await page.getByRole('button', { name: 'Tambah ke keranjang' }).click();
     await expect(page.getByRole('status').getByText('masuk keranjang')).toBeVisible(); // tunggu item benar-benar masuk
     const auth = { Authorization: `Bearer ${user.token}` };
-    const unpaid = await (await request.post('http://localhost:8080/api/orders', { headers: auth, data: { fulfillmentType: 'DELIVERY', shippingName: 'U', shippingPhone: '0812345678', shippingAddress: 'Jl. Uji Coba No. 1, Jakarta' } })).json();
+    const unpaid = await (await request.post(`${API}/api/orders`, { headers: auth, data: { fulfillmentType: 'DELIVERY', shippingName: 'U', shippingPhone: '0812345678', shippingAddress: 'Jl. Uji Coba No. 1, Jakarta' } })).json();
     await page.goto(`/order/${unpaid.id}`);
     await expect(page.getByRole('button', { name: 'Bayar sekarang' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Unduh PDF' })).toHaveCount(0);
