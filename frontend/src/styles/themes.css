@@ -189,3 +189,5 @@
   --font-display: "Hanken Grotesk Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
   --shadow-float: 0 8px 24px rgb(14 16 19 / 0.12);
 }
+:root[data-palet="c"] .page-title em, :root[data-palet="c"] .wordmark span { font-style: normal; font-weight: 600; color: var(--accent); }
+:root[data-palet="c"] .rail .brand i, :root[data-palet="c"] .alogin .brand i { font-style: normal; font-weight: 600; }
