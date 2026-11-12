@@ -7,17 +7,20 @@ import java.util.Locale;
 
 import org.springframework.web.util.HtmlUtils;
 
+import com.tokoku.common.Theme;
+
 /**
  * Satu template per jenis: subjek + HTML (tabel + CSS inline, tanpa gambar, font sistem karena web font tidak andal
- * di email) + versi teks. Warna dari docs/DESIGN.md: kertas krem, tinta gelap, hijau tua. "Pesanan dibuat" dan
+ * di email) + versi teks. Warna dari theme/tema.json (varian aktif). "Pesanan dibuat" dan
  * "pembayaran diterima" memakai tata letak struk lengkap; jenis lain memakai tata letak ringkas.
  */
 public final class MailTemplates {
 
-    private static final String PAPER = "#F6F1E9", SURFACE = "#FBF8F3", INK = "#1B1613", MUTED = "#5F564D", LINE = "#D8CDBE",
-            GREEN = "#2E4B3C", ON_GREEN = "#F6F1E9", OK_BG = "#DCE7DD", OK_INK = "#24392D", WARN_BG = "#F1E3C4", WARN_INK = "#5E3C00";
-    private static final String SERIF = "Georgia,'Times New Roman',serif";
+    private static final Theme T = Theme.current();
+    private static final String PAPER = T.get("paper"), SURFACE = T.get("surface"), INK = T.get("ink"), MUTED = T.get("ink-muted"), LINE = T.get("line"),
+            GREEN = T.get("accent"), ON_GREEN = T.get("on-accent"), OK_BG = T.get("ok-bg"), OK_INK = T.get("ok-ink"), WARN_BG = T.get("warn-bg"), WARN_INK = T.get("warn-ink");
     private static final String SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+    private static final String SERIF = T.sansDisplay() ? SANS : "Georgia,'Times New Roman',serif";
 
     private MailTemplates() {}
 
@@ -205,7 +208,7 @@ public final class MailTemplates {
                 .append("<tr><td style=\"padding:0 0 16px\"><div style=\"font-family:").append(SERIF).append(";font-size:24px;line-height:1.2;color:").append(GREEN).append("\"><b>").append(e(d.storeName())).append("</b></div>");
         String sub = joinNonBlank(" · ", d.storeAddress(), d.storePhone());
         if (!sub.isEmpty()) b.append("<div style=\"margin-top:4px;font-family:").append(SANS).append(";font-size:13px;line-height:1.4;color:").append(MUTED).append("\">").append(e(sub)).append("</div>");
-        b.append("</td></tr><tr><td class=\"card\" style=\"background:#ffffff;border:1px solid ").append(LINE).append(";border-top:4px solid ").append(GREEN).append(";padding:28px\">")
+        b.append("</td></tr><tr><td class=\"card\" style=\"background:").append(T.get("card")).append(";border:1px solid ").append(LINE).append(";border-top:4px solid ").append(GREEN).append(";padding:28px\">")
                 .append(inner)
                 .append("</td></tr><tr><td style=\"padding:16px 0;font-family:").append(SANS).append(";font-size:12px;line-height:1.5;color:").append(MUTED).append("\">")
                 .append(e(joinNonBlank(" \u00B7 ", d.storePhone(), d.storeEmail())))

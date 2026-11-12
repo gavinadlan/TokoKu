@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Palet TokoKu: perbandingan varian</title>
+<!-- Templat halaman. index.html dihasilkan: node scripts/palet.mjs --page -->
+<style>
+:root{--bg:#fff;--fg:#16181b;--mut:#555b63;--ln:#d9dcdf}
+@media (prefers-color-scheme:dark){:root{--bg:#14161a;--fg:#eceef0;--mut:#a3a9b0;--ln:#2d3239}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1240px;margin:0 auto;padding:32px 16px 96px}
+h1{font-size:2rem;margin:0 0 8px}h2{font-size:1.5rem;margin:56px 0 4px}.lead{color:var(--mut);margin:0 0 16px;max-width:70ch}
+nav{display:flex;flex-wrap:wrap;gap:8px 16px;margin:16px 0 8px}nav a{color:inherit}
+.rec{border:1px solid var(--ln);border-radius:8px;padding:20px;margin-top:24px}.rec h2{margin-top:0}.rec li{margin:6px 0;max-width:75ch}
+.sw{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0}.sw div{width:104px;font-size:.8rem}.sw i{display:block;height:44px;border:1px solid var(--ln);border-radius:6px;margin-bottom:4px}.sw b{display:block}.sw code{color:var(--mut)}
+.ct{border-collapse:collapse;font-size:.85rem;margin:8px 0 16px}.ct caption{text-align:left;color:var(--mut);padding-bottom:4px}.ct th,.ct td{border:1px solid var(--ln);padding:4px 10px;text-align:left}
+figure{margin:0}figure img{width:100%;height:auto;display:block;border:1px solid var(--ln);border-radius:6px}figcaption{font-size:.78rem;color:var(--mut);padding:4px 0 0}
+.dsk{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.mob{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:16px}
+@media (max-width:760px){.dsk{grid-template-columns:1fr}.mob{grid-template-columns:repeat(2,1fr)}}
+</style></head><body><main>
+<h1>Palet TokoKu: tiga varian</h1>
+<p class="lead">Semua varian hidup di satu berkas, <code>src/main/resources/theme/tema.json</code>. Frontend, email, dan invoice PDF membaca berkas yang sama. Belum ada varian yang diterapkan; tampilan produksi tetap "Saat ini".</p>
+<nav><a href="#rekomendasi">Rekomendasi</a><a href="#base">Saat ini</a><a href="#a">A</a><a href="#b">B</a><a href="#c">C</a></nav>
+<div class="rec" id="rekomendasi">
+<h2>Rekomendasi: C, dengan B sebagai pilihan aman</h2>
+<ul>
+<li><b>C paling khas.</b> Krem dan hijau tua plus serif adalah rupa bawaan toko kopi "artisan". Terakota (A) tetap di keluarga itu: hanya warna tombol yang berganti, kesan keseluruhan sama. B sedikit lebih jarang, tetapi krem dan biru tua juga umum di situs editorial.</li>
+<li><b>C cocok dengan foto.</b> Foto katalog berlatar putih atau abu terang (grinder, mug, V60). Di latar krem foto-foto itu tampak seperti kotak putih yang menempel; di latar abu-putih dingin batasnya hilang dan katalog terlihat rapi.</li>
+<li><b>Tidak norak.</b> Frambos hanya muncul di tombol, tautan, cincin fokus, dan satu kata di judul. Sisanya tinta dan abu. Kontras tombol 6,9:1 dan teks sekunder 7,6:1.</li>
+<li><b>Harga C.</b> Hilang kesan hangat kopi. Frambos dan merah error (#A02A20) satu keluarga warna, jadi status tidak boleh bergantung pada warna saja. Teks status sudah menyertai warna, tetapi bila C dipilih, merah error sebaiknya digeser ke oranye-merah.</li>
+<li><b>Bila ingin tetap hangat:</b> pilih B. Biru tinta lulus AA (tombol 10:1), tidak bentrok dengan merah error, dan tidak mengubah tipografi.</li>
+</ul></div>
+
+<section id="base">
+  <h2>Saat ini</h2><p class="lead">Krem hangat, tinta cokelat gelap, hijau tua, Fraunces. Dipakai sebagai pembanding.</p>
+  <div class="sw"><div><i style="background:#F6F1E9"></i><b>paper</b><code>#F6F1E9</code></div><div><i style="background:#FBF8F3"></i><b>surface</b><code>#FBF8F3</code></div><div><i style="background:#1B1613"></i><b>ink</b><code>#1B1613</code></div><div><i style="background:#2E4B3C"></i><b>accent</b><code>#2E4B3C</code></div><div><i style="background:#243C30"></i><b>accent-hover</b><code>#243C30</code></div><div><i style="background:#D8CDBE"></i><b>line</b><code>#D8CDBE</code></div><div><i style="background:#1B1613"></i><b>rail</b><code>#1B1613</code></div></div>
+  <table class="ct"><caption>Kontras WCAG (AA: teks 4,5, fokus 3)</caption><tr><th>teks utama</th><th>teks sekunder</th><th>teks tombol</th><th>tautan dan fokus</th><th>teks error</th></tr>
+  <tr><td>15.95:1</td><td>6.39:1</td><td>8.54:1</td><td>8.54:1</td><td>6.56:1</td></tr></table>
+  <div class="dsk"><figure><img loading="lazy" src="img/base-home-d.png" alt="Saat ini, home, desktop 1440x900"><figcaption>home 1440x900</figcaption></figure><figure><img loading="lazy" src="img/base-produk-d.png" alt="Saat ini, produk, desktop 1440x900"><figcaption>produk 1440x900</figcaption></figure><figure><img loading="lazy" src="img/base-checkout-d.png" alt="Saat ini, checkout, desktop 1440x900"><figcaption>checkout 1440x900</figcaption></figure><figure><img loading="lazy" src="img/base-admin-d.png" alt="Saat ini, admin, desktop 1440x900"><figcaption>admin 1440x900</figcaption></figure></div>
+  <div class="mob"><figure><img loading="lazy" src="img/base-home-m.png" alt="Saat ini, home, ponsel 390x844"><figcaption>home 390x844</figcaption></figure><figure><img loading="lazy" src="img/base-produk-m.png" alt="Saat ini, produk, ponsel 390x844"><figcaption>produk 390x844</figcaption></figure><figure><img loading="lazy" src="img/base-checkout-m.png" alt="Saat ini, checkout, ponsel 390x844"><figcaption>checkout 390x844</figcaption></figure><figure><img loading="lazy" src="img/base-admin-m.png" alt="Saat ini, admin, ponsel 390x844"><figcaption>admin 390x844</figcaption></figure></div>
+</section>
+<section id="a">
+  <h2>A. Terakota</h2><p class="lead">Latar dan tinta sama, aksen bata. Paling dekat dengan yang sekarang, hanya aksennya berganti.</p>
+  <div class="sw"><div><i style="background:#F6F1E9"></i><b>paper</b><code>#F6F1E9</code></div><div><i style="background:#FBF8F3"></i><b>surface</b><code>#FBF8F3</code></div><div><i style="background:#1B1613"></i><b>ink</b><code>#1B1613</code></div><div><i style="background:#9A3B1A"></i><b>accent</b><code>#9A3B1A</code></div><div><i style="background:#7F2F14"></i><b>accent-hover</b><code>#7F2F14</code></div><div><i style="background:#D8CDBE"></i><b>line</b><code>#D8CDBE</code></div><div><i style="background:#1B1613"></i><b>rail</b><code>#1B1613</code></div></div>
+  <table class="ct"><caption>Kontras WCAG (AA: teks 4,5, fokus 3)</caption><tr><th>teks utama</th><th>teks sekunder</th><th>teks tombol</th><th>tautan dan fokus</th><th>teks error</th></tr>
+  <tr><td>15.95:1</td><td>6.39:1</td><td>6.20:1</td><td>6.20:1</td><td>6.56:1</td></tr></table>
+  <div class="dsk"><figure><img loading="lazy" src="img/a-home-d.png" alt="A. Terakota, home, desktop 1440x900"><figcaption>home 1440x900</figcaption></figure><figure><img loading="lazy" src="img/a-produk-d.png" alt="A. Terakota, produk, desktop 1440x900"><figcaption>produk 1440x900</figcaption></figure><figure><img loading="lazy" src="img/a-checkout-d.png" alt="A. Terakota, checkout, desktop 1440x900"><figcaption>checkout 1440x900</figcaption></figure><figure><img loading="lazy" src="img/a-admin-d.png" alt="A. Terakota, admin, desktop 1440x900"><figcaption>admin 1440x900</figcaption></figure></div>
+  <div class="mob"><figure><img loading="lazy" src="img/a-home-m.png" alt="A. Terakota, home, ponsel 390x844"><figcaption>home 390x844</figcaption></figure><figure><img loading="lazy" src="img/a-produk-m.png" alt="A. Terakota, produk, ponsel 390x844"><figcaption>produk 390x844</figcaption></figure><figure><img loading="lazy" src="img/a-checkout-m.png" alt="A. Terakota, checkout, ponsel 390x844"><figcaption>checkout 390x844</figcaption></figure><figure><img loading="lazy" src="img/a-admin-m.png" alt="A. Terakota, admin, ponsel 390x844"><figcaption>admin 390x844</figcaption></figure></div>
+</section>
+<section id="b">
+  <h2>B. Biru tinta</h2><p class="lead">Latar dan tinta sama, aksen biru tinta. Tenang, editorial, serif tetap.</p>
+  <div class="sw"><div><i style="background:#F6F1E9"></i><b>paper</b><code>#F6F1E9</code></div><div><i style="background:#FBF8F3"></i><b>surface</b><code>#FBF8F3</code></div><div><i style="background:#1B1613"></i><b>ink</b><code>#1B1613</code></div><div><i style="background:#1F3A68"></i><b>accent</b><code>#1F3A68</code></div><div><i style="background:#172C50"></i><b>accent-hover</b><code>#172C50</code></div><div><i style="background:#D8CDBE"></i><b>line</b><code>#D8CDBE</code></div><div><i style="background:#1B1613"></i><b>rail</b><code>#1B1613</code></div></div>
+  <table class="ct"><caption>Kontras WCAG (AA: teks 4,5, fokus 3)</caption><tr><th>teks utama</th><th>teks sekunder</th><th>teks tombol</th><th>tautan dan fokus</th><th>teks error</th></tr>
+  <tr><td>15.95:1</td><td>6.39:1</td><td>10.02:1</td><td>10.02:1</td><td>6.56:1</td></tr></table>
+  <div class="dsk"><figure><img loading="lazy" src="img/b-home-d.png" alt="B. Biru tinta, home, desktop 1440x900"><figcaption>home 1440x900</figcaption></figure><figure><img loading="lazy" src="img/b-produk-d.png" alt="B. Biru tinta, produk, desktop 1440x900"><figcaption>produk 1440x900</figcaption></figure><figure><img loading="lazy" src="img/b-checkout-d.png" alt="B. Biru tinta, checkout, desktop 1440x900"><figcaption>checkout 1440x900</figcaption></figure><figure><img loading="lazy" src="img/b-admin-d.png" alt="B. Biru tinta, admin, desktop 1440x900"><figcaption>admin 1440x900</figcaption></figure></div>
+  <div class="mob"><figure><img loading="lazy" src="img/b-home-m.png" alt="B. Biru tinta, home, ponsel 390x844"><figcaption>home 390x844</figcaption></figure><figure><img loading="lazy" src="img/b-produk-m.png" alt="B. Biru tinta, produk, ponsel 390x844"><figcaption>produk 390x844</figcaption></figure><figure><img loading="lazy" src="img/b-checkout-m.png" alt="B. Biru tinta, checkout, ponsel 390x844"><figcaption>checkout 390x844</figcaption></figure><figure><img loading="lazy" src="img/b-admin-m.png" alt="B. Biru tinta, admin, ponsel 390x844"><figcaption>admin 390x844</figcaption></figure></div>
+</section>
+<section id="c">
+  <h2>C. Putih tulang dingin</h2><p class="lead">Latar abu-putih dingin, tinta hampir hitam, aksen frambos tajam, judul sans (Hanken Grotesk).</p>
+  <div class="sw"><div><i style="background:#F2F3F0"></i><b>paper</b><code>#F2F3F0</code></div><div><i style="background:#FAFAF8"></i><b>surface</b><code>#FAFAF8</code></div><div><i style="background:#0E1013"></i><b>ink</b><code>#0E1013</code></div><div><i style="background:#B0124F"></i><b>accent</b><code>#B0124F</code></div><div><i style="background:#8F0E40"></i><b>accent-hover</b><code>#8F0E40</code></div><div><i style="background:#D3D6D3"></i><b>line</b><code>#D3D6D3</code></div><div><i style="background:#0E1013"></i><b>rail</b><code>#0E1013</code></div></div>
+  <table class="ct"><caption>Kontras WCAG (AA: teks 4,5, fokus 3)</caption><tr><th>teks utama</th><th>teks sekunder</th><th>teks tombol</th><th>tautan dan fokus</th><th>teks error</th></tr>
+  <tr><td>17.11:1</td><td>7.55:1</td><td>6.90:1</td><td>6.19:1</td><td>6.62:1</td></tr></table>
+  <div class="dsk"><figure><img loading="lazy" src="img/c-home-d.png" alt="C. Putih tulang dingin, home, desktop 1440x900"><figcaption>home 1440x900</figcaption></figure><figure><img loading="lazy" src="img/c-produk-d.png" alt="C. Putih tulang dingin, produk, desktop 1440x900"><figcaption>produk 1440x900</figcaption></figure><figure><img loading="lazy" src="img/c-checkout-d.png" alt="C. Putih tulang dingin, checkout, desktop 1440x900"><figcaption>checkout 1440x900</figcaption></figure><figure><img loading="lazy" src="img/c-admin-d.png" alt="C. Putih tulang dingin, admin, desktop 1440x900"><figcaption>admin 1440x900</figcaption></figure></div>
+  <div class="mob"><figure><img loading="lazy" src="img/c-home-m.png" alt="C. Putih tulang dingin, home, ponsel 390x844"><figcaption>home 390x844</figcaption></figure><figure><img loading="lazy" src="img/c-produk-m.png" alt="C. Putih tulang dingin, produk, ponsel 390x844"><figcaption>produk 390x844</figcaption></figure><figure><img loading="lazy" src="img/c-checkout-m.png" alt="C. Putih tulang dingin, checkout, ponsel 390x844"><figcaption>checkout 390x844</figcaption></figure><figure><img loading="lazy" src="img/c-admin-m.png" alt="C. Putih tulang dingin, admin, ponsel 390x844"><figcaption>admin 390x844</figcaption></figure></div>
+</section>
+</main></body></html>

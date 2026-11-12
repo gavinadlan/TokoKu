@@ -7,6 +7,8 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
+import com.tokoku.common.Theme;
+
 import com.tokoku.order.FulfillmentType;
 
 /**
@@ -17,7 +19,11 @@ import com.tokoku.order.FulfillmentType;
 final class InvoiceHtml {
 
     private static final Locale ID = Locale.forLanguageTag("id-ID");
-    private static final String INK = "#1B1613", MUTED = "#5F564D", LINE = "#C9BEAE", ACCENT = "#1F3A2C";
+    private static final Theme T = Theme.current();
+    private static final String INK = T.get("ink"), MUTED = T.get("ink-muted"), LINE = T.get("invoice-line"), ACCENT = T.get("invoice-accent");
+    // Varian "sans": judul pakai Hanken Grotesk (tanpa italic), bukan Fraunces.
+    private static final String DISPLAY = T.sansDisplay() ? "Hanken Grotesk" : "Fraunces";
+    private static final String STAMP_STYLE = T.sansDisplay() ? "normal" : "italic";
 
     private InvoiceHtml() {}
 
@@ -105,16 +111,16 @@ final class InvoiceHtml {
                 + "table { border-collapse: collapse; } .w { width: 100%; } td, th { vertical-align: top; padding: 0; }"
                 + ".muted { color: " + MUTED + "; } .small { font-size: 7.5pt; } .b { font-weight: 600; } .r { text-align: right; } .c { text-align: center; } .ink { color: " + INK + "; }"
                 + ".top-l { width: 55%; } .top-r { width: 45%; text-align: right; }"
-                + ".store { font-family: 'Fraunces'; font-weight: 600; font-size: 17pt; line-height: 1.15; }"
-                + ".title { font-family: 'Fraunces'; font-weight: 300; font-size: 30pt; line-height: 1.05; }"
+                + ".store { font-family: '" + DISPLAY + "'; font-weight: 600; font-size: 17pt; line-height: 1.15; }"
+                + ".title { font-family: '" + DISPLAY + "'; font-weight: " + (T.sansDisplay() ? 400 : 300) + "; font-size: 30pt; line-height: 1.05; }"
                 + ".no { font-weight: 600; font-size: 10pt; margin-top: 3pt; }"
                 + ".paid { margin-top: 8pt; border: 2.25pt double " + ACCENT + "; color: " + ACCENT + "; } .paid td { padding: 4pt 12pt 3pt 12pt; text-align: center; }"
-                + ".paid-t { font-family: 'Fraunces'; font-style: italic; font-weight: 400; font-size: 14pt; line-height: 1.1; }"
+                + ".paid-t { font-family: '" + DISPLAY + "'; font-style: " + STAMP_STYLE + "; font-weight: 400; font-size: 14pt; line-height: 1.1; }"
                 + ".paid-s { font-size: 7pt; font-weight: 600; }"
                 + ".rule { border-top: 1pt solid " + INK + "; margin: 14pt 0 10pt 0; }"
                 + ".meta .mc { width: 25%; padding-right: 8pt; } .lbl { font-size: 7.5pt; color: " + MUTED + "; margin-bottom: 1pt; }"
                 + ".parties { margin-top: 14pt; } .parties .half { width: 50%; padding-right: 14pt; }"
-                + ".code { font-family: 'Fraunces'; font-weight: 600; letter-spacing: 2pt; font-size: 11pt; border: 0.75pt solid " + INK + "; padding: 1pt 6pt; }"
+                + ".code { font-family: '" + DISPLAY + "'; font-weight: 600; letter-spacing: 2pt; font-size: 11pt; border: 0.75pt solid " + INK + "; padding: 1pt 6pt; }"
                 + ".codewrap { margin-top: 4pt; font-size: 8pt; color: " + MUTED + "; }"
                 + ".items { margin-top: 16pt; } .items th { font-size: 7.5pt; font-weight: 600; color: " + MUTED + "; text-align: left; padding: 0 0 4pt 0; border-bottom: 1pt solid " + INK + "; }"
                 + ".items td { padding: 5pt 0; border-bottom: 0.5pt solid " + LINE + "; } .items th.r, .items td.r { text-align: right; } .items th.c, .items td.c { text-align: center; }"
