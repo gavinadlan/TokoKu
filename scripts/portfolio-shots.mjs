@@ -71,6 +71,9 @@ async function api(method, path, token, body) {
 const buyerToken = (await (await api('POST', '/api/auth/login', null, { email: buyerEmail, password: buyerPass })).json()).accessToken;
 const adminToken = (await (await api('POST', '/api/admin/auth/login', null, { email: adminEnv.ADMIN_EMAIL, password: adminEnv.ADMIN_PASSWORD })).json()).accessToken;
 
+const pid = async (q) => (await (await api('GET', `/api/products?q=${encodeURIComponent(q)}`)).json()).content[0].id;
+const [GAYO, V60, MUG] = [await pid('Gayo'), await pid('Dripper V60'), await pid('Mug Keramik')];
+
 async function fillCheckout(page) {
   await page.getByLabel('Nama penerima').fill('Siti Rahmawati');
   await page.getByLabel('Nomor telepon').fill('0812-5550-0101');
@@ -80,7 +83,7 @@ async function fillCheckout(page) {
 async function fillCart() {
   const cart = await (await api('GET', '/api/cart', buyerToken)).json();
   for (const it of cart.items ?? []) await api('DELETE', `/api/cart/items/${it.id}`, buyerToken);
-  for (const [productId, quantity] of [[1, 2], [11, 1], [21, 1]]) await api('POST', '/api/cart/items', buyerToken, { productId, quantity });
+  for (const [productId, quantity] of [[GAYO, 2], [V60, 1], [MUG, 1]]) await api('POST', '/api/cart/items', buyerToken, { productId, quantity });
 }
 
 // ---- Desktop publik
@@ -89,7 +92,7 @@ async function fillCart() {
   await page.goto('/');
   await page.locator('.grid .card').first().waitFor();
   await shoot(page, 'home');
-  await page.goto('/produk/11');
+  await page.goto(`/produk/${V60}`);
   await page.getByRole('heading', { level: 1 }).waitFor();
   await shoot(page, 'produk-galeri');
   await page.context().close();
@@ -111,7 +114,7 @@ await fillCart();
   await page.goto('/');
   await page.locator('.grid .card').first().waitFor();
   await shoot(page, 'mobile-katalog', { kind: 'phone' });
-  await page.goto('/produk/11');
+  await page.goto(`/produk/${V60}`);
   await page.getByRole('heading', { level: 1 }).waitFor();
   await shoot(page, 'mobile-produk', { kind: 'phone' });
   await login(page, buyerEmail, buyerPass);
@@ -129,7 +132,7 @@ await fillCart();
   await page.goto('/admin/order');
   await page.getByRole('table').waitFor();
   await shoot(page, 'admin-pesanan');
-  await page.goto('/admin/produk/11');
+  await page.goto(`/admin/produk/${V60}`);
   await page.locator('.imgs .tile img').first().waitFor();
   await page.evaluate(() => { const h = [...document.querySelectorAll('h2,h3')].find((e) => /Foto produk/.test(e.textContent)); window.scrollTo(0, h.getBoundingClientRect().top + scrollY - 190); });
   await shoot(page, 'admin-produk');

@@ -28,7 +28,7 @@ Foto produk tidak ada di repo (lisensi Unsplash tidak menyinggung penyimpanan di
 ## Data demo (`scripts/portfolio-seed.mjs`)
 
 - Toko: TokoKu, Jl. Braga No. 42 Bandung, 022-5550-1234, halo@tokoku.test, Senin sampai Sabtu 09.00 sampai 17.00; ongkir Rp 15.000, gratis di atas Rp 500.000.
-- 10 produk aktif di 4 kategori: Biji Kopi Single Origin (Gayo, Toraja Sapan, Flores Bajawa), Alat Seduh Manual (V60, French Press, teko leher angsa), Grinder dan Timbangan, Gelas dan Aksesori (mug, toples). Gayo, V60, grinder, dan mug punya 3 sampai 4 foto.
+- 10 produk aktif di 4 kategori, dibuat dalam urutan khusus karena sort "Terbaru" memakai id: baris pertama beranda = Gayo, V60, grinder, mug (logika sort aplikasi tidak diubah). Gayo, V60, grinder, mug, dan timbangan punya 2 sampai 4 foto.
 - 6 pembeli `@surel.test` dan 12 pesanan selama 7 hari: 3 selesai, 2 dikirim, 1 siap diambil, 1 diproses, 3 dibayar (perlu diproses), 2 menunggu pembayaran; campuran ambil di toko dan kirim.
-- Admin tampil sebagai "Rina Wijaya" (`admin@tokoku.local`, password di `.dev-admin.env`).
+- Admin demo "Rina Wijaya" (`rina@tokoku.test`; seed mengganti email di DB dan `.dev-admin.env`, password tetap di `.dev-admin.env`).
 - Kata sandi pembeli demo ada di `.demo-credentials` di folder ini (di-gitignore, tidak ikut commit).

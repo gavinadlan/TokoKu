@@ -44,12 +44,33 @@ await j('PUT', '/api/admin/store-settings', {
   },
 });
 
-// 2. Foto produk lewat jalur resmi: tanda tangan -> unggah langsung ke penyimpanan -> daftarkan. Foto pertama = utama.
-const PRODUCT_PHOTOS = { 1: ['gayo-1', 'gayo-2', 'gayo-3', 'gayo-4'], 2: ['toraja-1'], 3: ['flores-1'], 11: ['v60-1', 'v60-2', 'v60-3', 'v60-4'], 12: ['frenchpress-1'], 15: ['teko-1'], 16: ['grinder-1', 'grinder-2', 'grinder-3'], 19: ['timbangan-1'], 21: ['mug-2', 'mug-1', 'mug-3', 'mug-4'], 25: ['toples-1'] };
-for (const [id, names] of Object.entries(PRODUCT_PHOTOS)) {
-  const current = await j('GET', `/api/admin/products/${id}`, { token: admin });
-  if (current.images.length) { console.log(`produk ${id}: sudah punya ${current.images.length} foto, dilewati`); continue; }
-  for (const n of names) {
+// 2. Katalog demo. Aplikasi mengurutkan "Terbaru" menurut id, jadi urutan DIBUAT = kebalikan urutan tampil:
+// produk yang dibuat terakhir tampil pertama (baris pertama beranda = 4 produk terakhir di daftar ini).
+// Produk aktif lama dinonaktifkan lewat API (baris tidak dihapus); pesanan lama dibuang karena merujuk produk lama.
+const sql = (input) => execFileSync('docker', ['compose', 'exec', '-T', 'db', 'psql', '-U', 'tokoku', 'tokoku', '-v', 'ON_ERROR_STOP=1'], { cwd: ROOT, input, stdio: ['pipe', 'ignore', 'inherit'] });
+sql('delete from payments; delete from email_log; delete from order_items; delete from orders; delete from cart_items; delete from carts; update invoice_counters set last_value=0;');
+const cats = Object.fromEntries((await j('GET', '/api/categories')).map((c) => [c.name, c.id]));
+const old = await j('GET', '/api/admin/products?active=true&size=200', { token: admin });
+for (const p of old.content) await j('DELETE', `/api/products/${p.id}`, { token: admin });
+
+const CATALOG = [ // urutan buat (paling akhir = tampil pertama)
+  ['flores', 'Biji Kopi Single Origin', 'Kopi Arabika Flores Bajawa 250g', 88000, 60, 'Light-medium roast, nuansa kacang dan jeruk.', ['flores-1']],
+  ['toraja', 'Biji Kopi Single Origin', 'Kopi Arabika Toraja Sapan 250g', 92000, 60, 'Body tebal, after-taste manis karamel.', ['toraja-1']],
+  ['frenchpress', 'Alat Seduh Manual', 'French Press 600ml', 185000, 40, 'Gelas borosilikat dan rangka stainless steel.', ['frenchpress-1']],
+  ['teko', 'Alat Seduh Manual', 'Teko Leher Angsa 600ml', 275000, 40, 'Teko stainless dengan kontrol tuang presisi.', ['teko-1']],
+  ['timbangan', 'Grinder dan Timbangan', 'Timbangan Kopi Digital 0.1g', 325000, 40, 'Timer bawaan, kapasitas 2kg, layar mudah dibaca.', ['timbangan-1', 'timbangan-2']],
+  ['toples', 'Gelas dan Aksesori', 'Toples Kedap Udara 500g', 89000, 40, 'Penyimpan biji kopi dengan katup satu arah.', ['toples-1']],
+  ['mug', 'Gelas dan Aksesori', 'Mug Keramik Matte 300ml', 55000, 40, 'Mug keramik tebal berglasir doff, menahan panas. Warna putih gading.', ['mug-2', 'mug-1', 'mug-3', 'mug-4']],
+  ['grinder', 'Grinder dan Timbangan', 'Grinder Manual Burr Keramik', 395000, 40, 'Burr keramik, pengaturan gilingan bertingkat.', ['grinder-1', 'grinder-2', 'grinder-3']],
+  ['v60', 'Alat Seduh Manual', 'Dripper V60 Keramik 02', 165000, 40, 'Dripper kerucut dengan spiral rib untuk aliran seragam.', ['v60-1', 'v60-2', 'v60-3']],
+  ['gayo', 'Biji Kopi Single Origin', 'Kopi Arabika Gayo 250g', 85000, 60, 'Medium roast, aroma rempah dan cokelat, asal Aceh Tengah.', ['gayo-1', 'gayo-2', 'gayo-3', 'gayo-4']],
+];
+const PID = {};
+for (const [key, cat, name, price, stock, description, photos] of CATALOG) {
+  const id = (await j('POST', '/api/products', { token: admin, body: { categoryId: cats[cat], name, price, stock, description } })).id;
+  PID[key] = id;
+  // foto lewat jalur resmi: tanda tangan -> unggah langsung ke penyimpanan -> daftarkan; foto pertama = utama
+  for (const n of photos) {
     const sig = await j('POST', '/api/admin/uploads/sign', { token: admin });
     const form = new FormData();
     form.set('file', new Blob([readFileSync(`${PHOTOS}${n}.jpg`)], { type: 'image/jpeg' }), `${n}.jpg`);
@@ -58,12 +79,14 @@ for (const [id, names] of Object.entries(PRODUCT_PHOTOS)) {
     const up = await (await fetch(url, { method: 'POST', body: form })).json();
     if (!up.public_id) throw new Error(`unggah ${n} gagal: ${JSON.stringify(up).slice(0, 200)}`);
     await j('POST', `/api/admin/products/${id}/images`, { token: admin, body: { publicId: up.public_id, version: up.version, signature: up.signature, width: up.width, height: up.height, format: up.format, bytes: up.bytes } });
-    console.log(`produk ${id}: ${n} -> ${up.public_id}`);
   }
+  console.log(`produk ${id}: ${name} (${photos.length} foto)`);
 }
 
 // 3. Pembeli dan pesanan
-const PASS = process.env.DEMO_PASSWORD ?? `demo-${randomBytes(6).toString('hex')}`; // acak, ditulis ke .demo-credentials (di-gitignore)
+const credPath = `${ROOT}docs/portfolio/tokoku/.demo-credentials`;
+// kata sandi acak, dipakai ulang bila berkas kredensial sudah ada (pembeli lama tetap bisa masuk)
+const PASS = process.env.DEMO_PASSWORD ?? (existsSync(credPath) ? readFileSync(credPath, 'utf8').split(/\s+/)[1] : `demo-${randomBytes(6).toString('hex')}`);
 const people = {
   siti: { name: 'Siti Rahmawati', email: 'siti.rahmawati@surel.test', phone: '0812-5550-0101', addr: 'Jl. Dago Asri No. 17, Coblong, Kota Bandung 40135' },
   budi: { name: 'Budi Santoso', email: 'budi.santoso@surel.test', phone: '0813-5550-0102', addr: 'Jl. Kebon Jeruk Raya No. 8, Kebon Jeruk, Jakarta Barat 11530' },
@@ -79,23 +102,23 @@ for (const p of Object.values(people)) {
 
 // [pembeli, jenis, daysAgo, status akhir, item [produk, jumlah]]
 const ORDERS = [
-  ['siti', 'PICKUP', 6, 'COMPLETED', [[1, 2], [25, 1]]],
-  ['budi', 'DELIVERY', 5, 'COMPLETED', [[16, 1], [2, 1]]],
-  ['dewi', 'DELIVERY', 4, 'COMPLETED', [[11, 1], [3, 2]]],
-  ['andi', 'DELIVERY', 3, 'SHIPPED', [[15, 1], [19, 1]]],
-  ['maya', 'DELIVERY', 2, 'SHIPPED', [[12, 1], [1, 1]]],
-  ['rizky', 'PICKUP', 2, 'READY_FOR_PICKUP', [[21, 2], [3, 1]]],
-  ['siti', 'DELIVERY', 1, 'PROCESSING', [[16, 1], [19, 1], [2, 2]]],
-  ['dewi', 'PICKUP', 1, 'PAID', [[1, 1], [21, 1]]],
-  ['budi', 'DELIVERY', 0, 'PAID', [[11, 1], [15, 1]]],
-  ['maya', 'DELIVERY', 0, 'PAID', [[2, 3]]],
-  ['andi', 'PICKUP', 0, 'PENDING_PAYMENT', [[3, 2]]],
-  ['rizky', 'DELIVERY', 0, 'PENDING_PAYMENT', [[25, 2], [12, 1]]],
+  ['siti', 'PICKUP', 6, 'COMPLETED', [['gayo', 2], ['toples', 1]]],
+  ['budi', 'DELIVERY', 5, 'COMPLETED', [['grinder', 1], ['toraja', 1]]],
+  ['dewi', 'DELIVERY', 4, 'COMPLETED', [['v60', 1], ['flores', 2]]],
+  ['andi', 'DELIVERY', 3, 'SHIPPED', [['teko', 1], ['timbangan', 1]]],
+  ['maya', 'DELIVERY', 2, 'SHIPPED', [['frenchpress', 1], ['gayo', 1]]],
+  ['rizky', 'PICKUP', 2, 'READY_FOR_PICKUP', [['mug', 2], ['flores', 1]]],
+  ['siti', 'DELIVERY', 1, 'PROCESSING', [['grinder', 1], ['timbangan', 1], ['toraja', 2]]],
+  ['dewi', 'PICKUP', 1, 'PAID', [['gayo', 1], ['mug', 1]]],
+  ['budi', 'DELIVERY', 0, 'PAID', [['v60', 1], ['teko', 1]]],
+  ['maya', 'DELIVERY', 0, 'PAID', [['toraja', 3]]],
+  ['andi', 'PICKUP', 0, 'PENDING_PAYMENT', [['flores', 2]]],
+  ['rizky', 'DELIVERY', 0, 'PENDING_PAYMENT', [['toples', 2], ['frenchpress', 1]]],
 ];
 const shifts = [];
 for (const [who, type, days, final, items] of ORDERS) {
   const p = people[who];
-  for (const [productId, quantity] of items) await j('POST', '/api/cart/items', { token: p.token, body: { productId, quantity } });
+  for (const [key, quantity] of items) await j('POST', '/api/cart/items', { token: p.token, body: { productId: PID[key], quantity } });
   const order = await j('POST', '/api/orders', { token: p.token, body: { fulfillmentType: type, shippingName: p.name, shippingPhone: p.phone, shippingAddress: type === 'DELIVERY' ? p.addr : undefined } });
   if (final !== 'PENDING_PAYMENT') {
     const pay = await j('POST', `/api/orders/${order.id}/pay`, { token: p.token });
@@ -115,17 +138,21 @@ for (const [who, type, days, final, items] of ORDERS) {
 }
 
 // Sebar tanggal: geser created_at dan stempel turunannya, jam dibuat bervariasi.
-const sql = shifts.map(([id, d], i) => {
+const shiftSql = shifts.map(([id, d], i) => {
   const t = `(date_trunc('day', now()) - interval '${d} day' + interval '${9 + ((i * 3) % 8)} hour ${(i * 17) % 60} minute')`;
   return `update orders set created_at=${t}, invoiced_at=case when invoiced_at is not null then ${t}+interval '6 minute' end, pickup_ready_at=case when pickup_ready_at is not null then ${t}+interval '5 hour' end where id=${id}; update payments set created_at=${t}, paid_at=case when paid_at is not null then ${t}+interval '6 minute' end where order_id=${id};`;
 }).join('\n');
-execFileSync('docker', ['compose', 'exec', '-T', 'db', 'psql', '-U', 'tokoku', 'tokoku', '-v', 'ON_ERROR_STOP=1'], { cwd: ROOT, input: sql, stdio: ['pipe', 'ignore', 'inherit'] });
+sql(shiftSql);
 
 // Metode bayar yang wajar di invoice (provider fake menulis "fake" yang tampil sebagai "Simulasi pembayaran")
 const types = ['bank_transfer', 'qris', 'gopay', 'bank_transfer', 'qris', 'credit_card'];
-execFileSync('docker', ['compose', 'exec', '-T', 'db', 'psql', '-U', 'tokoku', 'tokoku', '-v', 'ON_ERROR_STOP=1'], { cwd: ROOT, stdio: ['pipe', 'ignore', 'inherit'],
-  input: shifts.map(([id], i) => `update payments set payment_type='${types[i % types.length]}' where order_id=${id} and payment_type='fake';`).join('\n') });
+sql(shifts.map(([id], i) => `update payments set payment_type='${types[i % types.length]}' where order_id=${id} and payment_type='fake';`).join('\n'));
 
-const credFile = `${ROOT}docs/portfolio/tokoku/.demo-credentials`;
+// Admin demo: nama dan alamat wajar (hanya data demo; kode produksi tidak berubah). .dev-admin.env disamakan supaya login lokal dan e2e tetap jalan.
+const ADMIN_DEMO_EMAIL = 'rina@tokoku.test';
+sql(`update users set email='${ADMIN_DEMO_EMAIL}', name='Rina Wijaya' where role='ADMIN' and email in ('${env.ADMIN_EMAIL}','${ADMIN_DEMO_EMAIL}');`);
+writeFileSync(`${ROOT}.dev-admin.env`, readFileSync(`${ROOT}.dev-admin.env`, 'utf8').replace(/^ADMIN_EMAIL=.*$/m, `ADMIN_EMAIL=${ADMIN_DEMO_EMAIL}`));
+
+const credFile = credPath;
 writeFileSync(credFile, Object.values(people).map((p) => `${p.email}  ${PASS}`).join('\n') + '\n');
 console.log(`selesai; kredensial pembeli demo di ${credFile}`);
